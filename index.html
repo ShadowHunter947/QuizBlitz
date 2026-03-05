@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0A0A0F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Fast-paced trivia game with streaks, multipliers, and unlockable themes. Beat the clock!">
+<meta name="description" content="Quiz Blitz — Fast-paced trivia with themes, sounds & animated worlds!">
 <title>Quiz Blitz</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icons/icon-192.png">
@@ -32,6 +32,15 @@ button{font-family:'Outfit',sans-serif;outline:none}
 @keyframes levelUp{0%{transform:scale(.5) rotate(-5deg);opacity:0}50%{transform:scale(1.15) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes xpFill{from{width:0}}
 @keyframes unlockGlow{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.3)}50%{box-shadow:0 0 40px rgba(255,215,0,.6)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes orbit{0%{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)}100%{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)}}
+@keyframes drift{0%{transform:translate(0,0)}25%{transform:translate(10px,-15px)}50%{transform:translate(-5px,-25px)}75%{transform:translate(-15px,-10px)}100%{transform:translate(0,0)}}
+@keyframes binaryFall{0%{transform:translateY(-20px);opacity:0}10%{opacity:.6}90%{opacity:.6}100%{transform:translateY(calc(100vh + 20px));opacity:0}}
+@keyframes sparkle{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@keyframes sandDrift{0%{transform:translateX(0) translateY(0)}100%{transform:translateX(40px) translateY(20px);opacity:0}}
+@keyframes waveBob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-4px) scaleY(1.05)}}
+@keyframes filmRoll{0%{transform:translateY(0)}100%{transform:translateY(-200px)}}
+@keyframes circuitPulse{0%,100%{opacity:.15}50%{opacity:.5}}
 </style>
 </head>
 <body>
@@ -40,8 +49,283 @@ button{font-family:'Outfit',sans-serif;outline:none}
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel" data-type="module">
-const {useState,useEffect,useCallback,useRef} = React;
+const {useState,useEffect,useCallback,useRef,useMemo}=React;
 
+// ═══════════════════════════════════════
+// SOUND ENGINE — Web Audio API (no files!)
+// ═══════════════════════════════════════
+class SoundEngine {
+  constructor(){this.ctx=null;this.enabled=true;this.volume=0.5;}
+  init(){
+    if(this.ctx)return;
+    try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(this.ctx.state==='suspended')this.ctx.resume();}catch(e){this.enabled=false;}
+  }
+  gain(v=this.volume){const g=this.ctx.createGain();g.gain.value=v;g.connect(this.ctx.destination);return g;}
+  osc(type,freq,dur,vol=this.volume,detune=0){
+    if(!this.ctx||!this.enabled)return;
+    const o=this.ctx.createOscillator();const g=this.gain(vol);
+    o.type=type;o.frequency.value=freq;o.detune.value=detune;o.connect(g);
+    g.gain.setValueAtTime(vol,this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dur);
+    o.start();o.stop(this.ctx.currentTime+dur);
+  }
+  noise(dur,vol=0.1){
+    if(!this.ctx||!this.enabled)return;
+    const buf=this.ctx.createBuffer(1,this.ctx.sampleRate*dur,this.ctx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const src=this.ctx.createBufferSource();src.buffer=buf;
+    const g=this.gain(vol);const f=this.ctx.createBiquadFilter();
+    f.type='bandpass';f.frequency.value=1000;f.Q.value=0.5;
+    src.connect(f);f.connect(g);src.start();src.stop(this.ctx.currentTime+dur);
+  }
+  // --- GAME SOUNDS ---
+  click(){this.osc('sine',800,0.06,0.15);this.osc('sine',1200,0.04,0.08);}
+  hover(){this.osc('sine',600,0.03,0.05);}
+  correct(){
+    const t=this.ctx?.currentTime;if(!t)return;
+    [523,659,784].forEach((f,i)=>{setTimeout(()=>this.osc('sine',f,0.15,0.25),i*80);});
+    this.osc('triangle',1047,0.3,0.1);
+  }
+  wrong(){
+    this.osc('sawtooth',200,0.3,0.15);this.osc('square',150,0.2,0.1);
+    this.noise(0.15,0.08);
+  }
+  streak(n){
+    const base=440+n*40;
+    [0,50,100].forEach((d,i)=>{setTimeout(()=>{this.osc('sine',base+i*100,0.12,0.2);this.osc('triangle',base+i*150,0.1,0.1);},d);});
+  }
+  tick(){this.osc('sine',1000,0.03,0.1);this.osc('triangle',2000,0.02,0.05);}
+  countdown(n){
+    if(n>0){this.osc('sine',880,0.1,0.2);this.osc('triangle',440,0.08,0.1);}
+    else{[523,659,784,1047].forEach((f,i)=>{setTimeout(()=>this.osc('sine',f,0.2,0.3),i*60);});}
+  }
+  levelUp(){
+    [262,330,392,523,659,784].forEach((f,i)=>{
+      setTimeout(()=>{this.osc('sine',f,0.25,0.25);this.osc('triangle',f*2,0.15,0.08);},i*100);
+    });
+    setTimeout(()=>this.osc('sine',1047,0.6,0.2),650);
+  }
+  gameOver(good){
+    if(good){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.3,0.2),i*120));}
+    else{[392,349,330,262].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.25,0.15),i*150));}
+  }
+  themeSelect(){this.osc('sine',523,0.08,0.15);setTimeout(()=>this.osc('sine',784,0.12,0.2),80);}
+  timerWarning(){this.osc('square',440,0.08,0.12);this.osc('sine',880,0.05,0.08);}
+  multiplier(){
+    [660,880,1100].forEach((f,i)=>setTimeout(()=>this.osc('triangle',f,0.1,0.15),i*50));
+  }
+  // Category ambient tones
+  ambientPing(cat){
+    const tones={Science:[523,659,784],History:[330,392,440],"Geography":[440,523,659],"Pop Culture":[587,740,880],Tech:[660,880,1100]};
+    const t=tones[cat]||tones.Science;
+    this.osc('sine',t[Math.floor(Math.random()*3)],0.4,0.03);
+  }
+}
+const sfx=new SoundEngine();
+
+// ═══════════════════════════════════════
+// ANIMATED BACKGROUNDS per CATEGORY
+// ═══════════════════════════════════════
+const ScienceBg=({color})=>{
+  const atoms=useMemo(()=>Array.from({length:6},(_,i)=>({
+    x:15+Math.random()*70,y:10+Math.random()*80,size:30+Math.random()*40,
+    dur:8+Math.random()*6,delay:i*1.2,orbitR:8+Math.random()*12,
+  })),[]);
+  const connections=useMemo(()=>Array.from({length:8},()=>({
+    x1:Math.random()*100,y1:Math.random()*100,x2:Math.random()*100,y2:Math.random()*100,
+    dur:6+Math.random()*8,delay:Math.random()*5,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    <svg width="100%" height="100%" style={{position:'absolute',opacity:0.12}}>
+      {connections.map((c,i)=><line key={i} x1={c.x1+'%'} y1={c.y1+'%'} x2={c.x2+'%'} y2={c.y2+'%'}
+        stroke={color} strokeWidth="0.5" opacity="0.4" strokeDasharray="4 4">
+        <animate attributeName="opacity" values="0.1;0.5;0.1" dur={c.dur+'s'} begin={c.delay+'s'} repeatCount="indefinite"/>
+      </line>)}
+    </svg>
+    {atoms.map((a,i)=><div key={i} style={{
+      position:'absolute',left:a.x+'%',top:a.y+'%',width:a.size,height:a.size,
+      border:`1px solid ${color}22`,borderRadius:'50%',animation:`drift ${a.dur}s ease-in-out ${a.delay}s infinite`,
+    }}>
+      <div style={{position:'absolute',width:6,height:6,borderRadius:'50%',background:color+'33',
+        left:'50%',top:'50%',transform:'translate(-50%,-50%)'}}/>
+      <div style={{position:'absolute',width:4,height:4,borderRadius:'50%',background:color+'44',
+        animation:`orbit ${3+i}s linear infinite`,['--r']:a.size/2.5+'px',left:'50%',top:'50%'}}/>
+    </div>)}
+    {/* DNA Helix hint */}
+    <svg width="60" height="300" style={{position:'absolute',right:'8%',top:'15%',opacity:0.08}}>
+      {Array.from({length:15},(_,i)=>{
+        const y=i*20;const x1=15+Math.sin(i*0.8)*12;const x2=45-Math.sin(i*0.8)*12;
+        return <g key={i}><circle cx={x1} cy={y} r="2.5" fill={color}/>
+          <circle cx={x2} cy={y} r="2.5" fill={color}/>
+          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="0.8" opacity="0.6"/>}
+        </g>;
+      })}
+    </svg>
+  </div>;
+};
+
+const HistoryBg=({color})=>{
+  const particles=useMemo(()=>Array.from({length:20},()=>({
+    x:Math.random()*100,y:60+Math.random()*40,size:1+Math.random()*2,
+    dur:3+Math.random()*5,delay:Math.random()*4,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    {/* Pyramids */}
+    <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax meet"
+      style={{position:'absolute',bottom:0,opacity:0.1}}>
+      <polygon points="80,280 140,160 200,280" fill={color} opacity="0.5"/>
+      <polygon points="160,280 240,120 320,280" fill={color} opacity="0.7"/>
+      <polygon points="260,280 310,180 360,280" fill={color} opacity="0.4"/>
+      {/* Ground line */}
+      <line x1="0" y1="280" x2="400" y2="280" stroke={color} strokeWidth="1" opacity="0.3"/>
+      {/* Stars */}
+      {Array.from({length:12},(_,i)=>
+        <circle key={i} cx={20+i*35} cy={30+Math.random()*80} r={0.8+Math.random()} fill={color} opacity="0.5">
+          <animate attributeName="opacity" values="0.2;0.8;0.2" dur={2+Math.random()*3+'s'} repeatCount="indefinite"/>
+        </circle>
+      )}
+    </svg>
+    {/* Floating sand particles */}
+    {particles.map((p,i)=><div key={i} style={{
+      position:'absolute',left:p.x+'%',bottom:p.y+'%',width:p.size,height:p.size,
+      borderRadius:'50%',background:color+'44',
+      animation:`sandDrift ${p.dur}s linear ${p.delay}s infinite`,
+    }}/>)}
+    {/* Hieroglyph-style symbols */}
+    <div style={{position:'absolute',left:'5%',top:'20%',fontSize:24,opacity:0.04,
+      animation:'float 8s ease-in-out infinite'}}>𓂀</div>
+    <div style={{position:'absolute',right:'10%',top:'30%',fontSize:20,opacity:0.04,
+      animation:'float 10s ease-in-out 2s infinite'}}>𓃭</div>
+    <div style={{position:'absolute',left:'20%',top:'10%',fontSize:18,opacity:0.03,
+      animation:'float 12s ease-in-out 4s infinite'}}>𓅃</div>
+  </div>;
+};
+
+const GeographyBg=({color})=>{
+  const pins=useMemo(()=>Array.from({length:8},()=>({
+    x:10+Math.random()*80,y:10+Math.random()*80,dur:4+Math.random()*4,delay:Math.random()*3,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    {/* Globe wireframe */}
+    <svg width="300" height="300" viewBox="0 0 200 200"
+      style={{position:'absolute',right:'-5%',top:'10%',opacity:0.06}}>
+      <circle cx="100" cy="100" r="80" fill="none" stroke={color} strokeWidth="0.8"/>
+      <ellipse cx="100" cy="100" rx="80" ry="30" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="80" ry="55" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="30" ry="80" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="55" ry="80" fill="none" stroke={color} strokeWidth="0.5"/>
+      <line x1="20" y1="100" x2="180" y2="100" stroke={color} strokeWidth="0.5"/>
+      <line x1="100" y1="20" x2="100" y2="180" stroke={color} strokeWidth="0.5"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="60s" repeatCount="indefinite"/>
+    </svg>
+    {/* Map pins */}
+    {pins.map((p,i)=><div key={i} style={{
+      position:'absolute',left:p.x+'%',top:p.y+'%',animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
+    }}>
+      <svg width="12" height="16" viewBox="0 0 12 16" opacity="0.15">
+        <path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z" fill={color}/>
+        <circle cx="6" cy="6" r="2" fill="white" opacity="0.5"/>
+      </svg>
+    </div>)}
+    {/* Wave lines at bottom */}
+    <svg width="100%" height="60" style={{position:'absolute',bottom:0,opacity:0.06}}>
+      <path d="M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30" fill="none" stroke={color} strokeWidth="1.5">
+        <animate attributeName="d" values="M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30;M0,30 Q50,50 100,30 T200,30 T300,30 T400,30 T500,30;M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30" dur="4s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  </div>;
+};
+
+const PopCultureBg=({color})=>{
+  const stars=useMemo(()=>Array.from({length:15},()=>({
+    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*4,dur:2+Math.random()*4,delay:Math.random()*3,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    {/* Spotlight beams */}
+    <div style={{position:'absolute',left:'20%',bottom:0,width:2,height:'100%',
+      background:`linear-gradient(to top,${color}08,transparent)`,transform:'rotate(-15deg)',transformOrigin:'bottom center'}}/>
+    <div style={{position:'absolute',right:'25%',bottom:0,width:2,height:'100%',
+      background:`linear-gradient(to top,${color}08,transparent)`,transform:'rotate(12deg)',transformOrigin:'bottom center'}}/>
+    {/* Stars */}
+    {stars.map((s,i)=><div key={i} style={{
+      position:'absolute',left:s.x+'%',top:s.y+'%',
+      width:s.size,height:s.size,
+      background:color,borderRadius:'50%',
+      animation:`sparkle ${s.dur}s ease ${s.delay}s infinite`,opacity:0.2,
+    }}/>)}
+    {/* Film strip hint */}
+    <div style={{position:'absolute',left:'3%',top:'5%',opacity:0.04}}>
+      <svg width="30" height="200" viewBox="0 0 30 200">
+        {Array.from({length:10},(_,i)=><g key={i}>
+          <rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke={color} strokeWidth="0.8"/>
+          <rect x="2" y={i*20+2} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="2" y={i*20+12} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="24" y={i*20+12} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+        </g>)}
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -40;0 0" dur="8s" repeatCount="indefinite"/>
+      </svg>
+    </div>
+    {/* Music note */}
+    <div style={{position:'absolute',right:'8%',top:'15%',fontSize:28,opacity:0.05,
+      animation:'float 6s ease-in-out infinite'}}>♪</div>
+    <div style={{position:'absolute',right:'15%',top:'45%',fontSize:20,opacity:0.04,
+      animation:'float 8s ease-in-out 2s infinite'}}>♫</div>
+  </div>;
+};
+
+const TechBg=({color})=>{
+  const binaryItems=useMemo(()=>Array.from({length:12},(_,i)=>({
+    x:5+Math.random()*90,char:Math.random()>.5?'1':'0',
+    dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*6,
+  })),[]);
+  const nodes=useMemo(()=>Array.from({length:6},()=>({
+    x:10+Math.random()*80,y:10+Math.random()*80,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    {/* Circuit board lines */}
+    <svg width="100%" height="100%" style={{position:'absolute',opacity:0.06}}>
+      {nodes.map((n,i)=>{
+        const next=nodes[(i+1)%nodes.length];
+        const midX=(parseFloat(n.x)+parseFloat(next.x))/2;
+        return <g key={i}>
+          <path d={`M${n.x}% ${n.y}% L${midX}% ${n.y}% L${midX}% ${next.y}% L${next.x}% ${next.y}%`}
+            fill="none" stroke={color} strokeWidth="0.8">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur={3+i+'s'} repeatCount="indefinite"/>
+          </path>
+          <circle cx={n.x+'%'} cy={n.y+'%'} r="3" fill={color} opacity="0.4">
+            <animate attributeName="r" values="2;4;2" dur={2+i*0.5+'s'} repeatCount="indefinite"/>
+          </circle>
+        </g>;
+      })}
+    </svg>
+    {/* Binary rain */}
+    {binaryItems.map((b,i)=><div key={i} style={{
+      position:'absolute',left:b.x+'%',top:-20,
+      fontSize:b.size,color:color,opacity:0.08,fontFamily:'monospace',fontWeight:700,
+      animation:`binaryFall ${b.dur}s linear ${b.delay}s infinite`,
+    }}>{b.char}</div>)}
+    {/* Terminal bracket */}
+    <div style={{position:'absolute',right:'6%',bottom:'15%',fontSize:36,opacity:0.04,
+      fontFamily:'monospace',animation:'pulse 3s ease infinite'}}>&gt;_</div>
+  </div>;
+};
+
+const CategoryBg=({category,color})=>{
+  switch(category){
+    case 'Science':return <ScienceBg color={color}/>;
+    case 'History':return <HistoryBg color={color}/>;
+    case 'Geography':return <GeographyBg color={color}/>;
+    case 'Pop Culture':return <PopCultureBg color={color}/>;
+    case 'Tech':return <TechBg color={color}/>;
+    default:return <ScienceBg color={color}/>;
+  }
+};
+
+// ═══════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════
 const THEMES=[
 {id:"midnight",name:"Midnight",free:true,unlockLevel:0,bg:"#0A0A0F",cardBg:"#111118",cardHover:"#15151F",border:"#1A1A2E",accent:"#00E5A0",accentAlt:"#00B4D8",textPrimary:"#F5F5F5",textSecondary:"#555",gradient:"radial-gradient(ellipse at 20% 50%,#00E5A008 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#00B4D806 0%,transparent 50%)",preview:"linear-gradient(135deg,#0A0A0F,#111118,#0A0A0F)",emoji:"🌙"},
 {id:"ember",name:"Ember",free:true,unlockLevel:0,bg:"#0F0A08",cardBg:"#1A1210",cardHover:"#221815",border:"#2E1A14",accent:"#FF6B35",accentAlt:"#FFB347",textPrimary:"#FFF0E6",textSecondary:"#665544",gradient:"radial-gradient(ellipse at 30% 20%,#FF6B3508 0%,transparent 50%),radial-gradient(ellipse at 70% 90%,#FFB34706 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0A08,#1A1210,#0F0A08)",emoji:"🔥"},
@@ -53,478 +337,377 @@ const THEMES=[
 {id:"matrix",name:"Matrix",free:false,unlockLevel:30,bg:"#000A00",cardBg:"#001A00",cardHover:"#002400",border:"#003D00",accent:"#00FF41",accentAlt:"#00CC33",textPrimary:"#CCFFCC",textSecondary:"#337733",gradient:"radial-gradient(ellipse at 50% 50%,#00FF4106 0%,transparent 50%)",preview:"linear-gradient(135deg,#000A00,#001A00,#000A00)",emoji:"🟢"},
 ];
 
-const QUESTIONS_EASY={
-Science:[
-{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},
-{q:"How many bones are in the adult human body?",opts:["186","206","226","196"],a:1},
-{q:"What planet is known as the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},
-{q:"What gas do plants absorb from the atmosphere?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},
-{q:"Which element has the atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},
-{q:"What is the hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},
-{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},
-{q:"What organ filters blood in the body?",opts:["Liver","Heart","Kidney","Lungs"],a:2},
-{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},
-{q:"What is the largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2},
-],
-History:[
-{q:"In what year did World War II end?",opts:["1943","1944","1945","1946"],a:2},
-{q:"Who first walked on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},
-{q:"Which civilization built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},
-{q:"In what year did Bangladesh gain independence?",opts:["1947","1965","1971","1975"],a:2},
-{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},
-{q:"What empire was ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},
-{q:"The Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},
-{q:"The Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},
-{q:"Who was the first President of the USA?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},
-{q:"What ancient city was buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2},
-],
-Geography:[
-{q:"What is the largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},
-{q:"What is the capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},
-{q:"Which river is the longest in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},
-{q:"What is the smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},
-{q:"The Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},
-{q:"Which country is the Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},
-{q:"What is the largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},
-{q:"How many continents are there?",opts:["5","6","7","8"],a:2},
-{q:"What is the tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},
-{q:"Which country has the most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2},
-],
-"Pop Culture":[
-{q:"Highest-grossing film of all time (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},
-{q:"Who wrote the Harry Potter series?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},
-{q:"What year was the first iPhone released?",opts:["2005","2006","2007","2008"],a:2},
-{q:"Which band performed 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},
-{q:"In what year was YouTube founded?",opts:["2003","2005","2007","2009"],a:1},
-{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},
-{q:"What gaming console is made by Nintendo?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},
-{q:"What is Mario's brother's name?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},
-{q:"Which movie features a character named Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},
-{q:"What is the name of Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1},
-],
-Tech:[
-{q:"What does 'HTTP' stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},
-{q:"Who is the father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},
-{q:"Most used language for web development?",opts:["Python","Java","JavaScript","C++"],a:2},
-{q:"What does 'AI' stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},
-{q:"Who developed the Android OS?",opts:["Apple","Microsoft","Google","Samsung"],a:2},
-{q:"How many bits are in a byte?",opts:["4","6","8","16"],a:2},
-{q:"What does 'URL' stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},
-{q:"Which company makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},
-{q:"What year was the World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},
-{q:"What does 'RAM' stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0},
-],
+const QE={
+Science:[{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},{q:"How many bones in the adult human body?",opts:["186","206","226","196"],a:1},{q:"What planet is the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},{q:"What gas do plants absorb?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},{q:"Element with atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},{q:"Hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},{q:"What organ filters blood?",opts:["Liver","Heart","Kidney","Lungs"],a:2},{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},{q:"Largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2}],
+History:[{q:"Year World War II ended?",opts:["1943","1944","1945","1946"],a:2},{q:"First person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},{q:"Who built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},{q:"Year Bangladesh gained independence?",opts:["1947","1965","1971","1975"],a:2},{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},{q:"Empire ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},{q:"Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},{q:"Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},{q:"First US President?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},{q:"City buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2}],
+Geography:[{q:"Largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},{q:"Capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},{q:"Longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},{q:"Smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},{q:"Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},{q:"Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},{q:"Largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},{q:"How many continents?",opts:["5","6","7","8"],a:2},{q:"Tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},{q:"Country with most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2}],
+"Pop Culture":[{q:"Highest-grossing film ever (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},{q:"Who wrote Harry Potter?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},{q:"First iPhone released?",opts:["2005","2006","2007","2008"],a:2},{q:"Band behind 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},{q:"Year YouTube was founded?",opts:["2003","2005","2007","2009"],a:1},{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},{q:"Nintendo's console?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},{q:"Mario's brother?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},{q:"Movie with character Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},{q:"Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1}],
+Tech:[{q:"What does HTTP stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},{q:"Father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},{q:"Most used web dev language?",opts:["Python","Java","JavaScript","C++"],a:2},{q:"What does AI stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},{q:"Who developed Android?",opts:["Apple","Microsoft","Google","Samsung"],a:2},{q:"Bits in a byte?",opts:["4","6","8","16"],a:2},{q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},{q:"Who makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},{q:"World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},{q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0}],
+};
+const QH={
+Science:[{q:"Heisenberg Uncertainty Principle is about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},{q:"Most abundant atmospheric gas?",opts:["Oxygen","Nitrogen","CO₂","Argon"],a:1},{q:"Absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},{q:"Particle with no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},{q:"Carbon-14 half-life?",opts:["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],a:1},{q:"Vitamin from sunlight?",opts:["Vit A","Vit B12","Vit C","Vit D"],a:3},{q:"Star collapse → black hole cause?",opts:["Fission","Gravitational collapse","Fusion","Thermal expansion"],a:1},{q:"Chandrasekhar limit is?",opts:["Max white dwarf mass","Speed of light","Planck length","Bohr radius"],a:0},{q:"pH of pure water?",opts:["5","7","8","6"],a:1},{q:"Beta decay emits?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1}],
+History:[{q:"Treaty of Westphalia ended?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},{q:"Last Mughal Emperor?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},{q:"D-Day code name?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},{q:"Rosetta Stone deciphered?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},{q:"Who led Salt March 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},{q:"Magna Carta year?",opts:["1066","1215","1315","1492"],a:1},{q:"Ottoman Empire fell after?",opts:["Crimean War","Balkan Wars","WWI","WWII"],a:2},{q:"Who wrote Art of War?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},{q:"Eastern Roman Empire = ?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},{q:"Silk Road → which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2}],
+Geography:[{q:"Deepest ocean point?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},{q:"Most time zones country?",opts:["Russia","USA","France","China"],a:2},{q:"Driest continent?",opts:["Africa","Australia","Antarctica","Asia"],a:2},{q:"Lake Baikal country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},{q:"Strait: Europe↔Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},{q:"Never colonized African country?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},{q:"Country on two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3}],
+"Pop Culture":[{q:"First Best Picture Oscar?",opts:["Sunrise","Wings","Jazz Singer","Metropolis"],a:1},{q:"Created Sherlock Holmes?",opts:["Christie","Conan Doyle","Poe","Dickens"],a:1},{q:"First game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},{q:"First animated feature film?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},{q:"Directed Parasite (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},{q:"Best-selling game ever?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},{q:"Netflix first original?",opts:["Stranger Things","House of Cards","OITNB","Narcos"],a:1},{q:"Highest MAL rated anime?",opts:["AoT","FMA:B","Steins;Gate","Gintama"],a:1},{q:"Spotify launched?",opts:["2006","2008","2010","2012"],a:1},{q:"Interstellar composer?",opts:["J. Williams","H. Zimmer","H. Shore","D. Elfman"],a:1}],
+Tech:[{q:"Invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},{q:"Binary search complexity?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},{q:"Haskell's paradigm?",opts:["OOP","Procedural","Functional","Logic"],a:2},{q:"First microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},{q:"OSI routing layer?",opts:["Transport","Network","Data Link","Session"],a:1},{q:"Bitcoin consensus?",opts:["Proof of Stake","Proof of Work","Delegated","Authority"],a:1},{q:"CUDA stands for?",opts:["Compute Unified Device Arch","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],a:0},{q:"LIDAR stands for?",opts:["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],a:0},{q:"Linux kernel language?",opts:["C++","C","Assembly","Rust"],a:1},{q:"API stands for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0}],
 };
 
-const QUESTIONS_HARD={
-Science:[
-{q:"What is the Heisenberg Uncertainty Principle about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},
-{q:"Most abundant gas in Earth's atmosphere?",opts:["Oxygen","Nitrogen","Carbon Dioxide","Argon"],a:1},
-{q:"What temperature is absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},
-{q:"Which subatomic particle has no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},
-{q:"Half-life of Carbon-14 approximately?",opts:["2,730 years","5,730 years","11,460 years","1,200 years"],a:1},
-{q:"Which vitamin is produced from sunlight?",opts:["Vitamin A","Vitamin B12","Vitamin C","Vitamin D"],a:3},
-{q:"What causes a star to become a black hole?",opts:["Nuclear fission","Gravitational collapse","Nuclear fusion","Thermal expansion"],a:1},
-{q:"What is the Chandrasekhar limit?",opts:["Max mass of white dwarf","Speed of light","Planck length","Bohr radius"],a:0},
-{q:"What is the pH of pure water?",opts:["5","7","8","6"],a:1},
-{q:"What particle does beta decay emit?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1},
-],
-History:[
-{q:"Treaty of Westphalia ended which conflict?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},
-{q:"Who was the last Mughal Emperor of India?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},
-{q:"Code name for the D-Day invasion?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},
-{q:"Rosetta Stone helped decipher which script?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},
-{q:"Who led the Salt March in 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},
-{q:"What year was the Magna Carta signed?",opts:["1066","1215","1315","1492"],a:1},
-{q:"Ottoman Empire fell after which war?",opts:["Crimean War","Balkan Wars","World War I","World War II"],a:2},
-{q:"Who wrote 'The Art of War'?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},
-{q:"Eastern Roman Empire was also known as?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},
-{q:"Silk Road connected Rome to which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2},
-],
-Geography:[
-{q:"Deepest point in the ocean?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},
-{q:"Which country has the most time zones?",opts:["Russia","USA","France","China"],a:2},
-{q:"What is the driest continent on Earth?",opts:["Africa","Australia","Antarctica","Asia"],a:2},
-{q:"Lake Baikal is in which country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},
-{q:"What strait separates Europe from Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},
-{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},
-{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},
-{q:"Which African country was never colonized?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},
-{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},
-{q:"Which country straddles two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3},
-],
-"Pop Culture":[
-{q:"First film to win Best Picture Oscar?",opts:["Sunrise","Wings","The Jazz Singer","Metropolis"],a:1},
-{q:"Who created Sherlock Holmes?",opts:["Agatha Christie","Arthur Conan Doyle","Edgar Allan Poe","Dickens"],a:1},
-{q:"First video game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},
-{q:"First feature-length animated film ever?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},
-{q:"Who directed 'Parasite' (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},
-{q:"Best-selling video game of all time?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},
-{q:"Netflix's first original series?",opts:["Stranger Things","House of Cards","Orange Is the New Black","Narcos"],a:1},
-{q:"Highest-rated anime on MAL?",opts:["Attack on Titan","FMA: Brotherhood","Steins;Gate","Gintama"],a:1},
-{q:"What year did Spotify launch?",opts:["2006","2008","2010","2012"],a:1},
-{q:"Who composed the Interstellar soundtrack?",opts:["John Williams","Hans Zimmer","Howard Shore","Danny Elfman"],a:1},
-],
-Tech:[
-{q:"Who invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},
-{q:"Time complexity of binary search?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},
-{q:"What paradigm does Haskell use?",opts:["Object-oriented","Procedural","Functional","Logic"],a:2},
-{q:"First commercial microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},
-{q:"What OSI layer handles routing?",opts:["Transport","Network","Data Link","Session"],a:1},
-{q:"Bitcoin's consensus mechanism?",opts:["Proof of Stake","Proof of Work","Delegated Proof","Proof of Authority"],a:1},
-{q:"What does 'CUDA' stand for?",opts:["Compute Unified Device Architecture","Central Unit Data Access","Compiled Universal Driver API","Core Unified Data Arch"],a:0},
-{q:"What does 'LIDAR' stand for?",opts:["Light Detection And Ranging","Laser Imaging Detection And Ranging","Light Integrated Data Radar","Laser Infrared Detection"],a:0},
-{q:"Linux kernel written in which language?",opts:["C++","C","Assembly","Rust"],a:1},
-{q:"What does 'API' stand for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0},
-],
-};
-
-const CATEGORIES=Object.keys(QUESTIONS_EASY);
-const CAT_COLORS={Science:"#00E5A0",History:"#FF6B6B",Geography:"#4ECDC4","Pop Culture":"#FFE66D",Tech:"#7B68EE"};
-const CAT_ICONS={Science:"🧬",History:"🏛️",Geography:"🌍","Pop Culture":"🎬",Tech:"💻"};
-const QS_PER_ROUND=10;
+const CATS=Object.keys(QE);
+const CC={Science:"#00E5A0",History:"#FF6B6B",Geography:"#4ECDC4","Pop Culture":"#FFE66D",Tech:"#7B68EE"};
+const CI={Science:"🧬",History:"🏛️",Geography:"🌍","Pop Culture":"🎬",Tech:"💻"};
+const QPR=10;
 const xpFor=l=>100+(l-1)*60;
 const TITLES=["Newbie","Rookie","Learner","Student","Scholar","Thinker","Sharp Mind","Brainiac","Expert","Genius","Mastermind","Prodigy","Sage","Oracle","Luminary","Visionary","Legend","Mythic","Titan","Immortal","Challenger","Champion","Conqueror","Ascendant","Paragon","Transcendent","Architect","Overlord","Cosmic Brain","GOAT","∞"];
-
-const LS_KEY="quiz_blitz_save";
-const loadSave=()=>{try{const d=JSON.parse(localStorage.getItem(LS_KEY));return d||null}catch{return null}};
-const doSave=(d)=>{try{localStorage.setItem(LS_KEY,JSON.stringify(d))}catch{}};
+const LS="quiz_blitz_save";
+const load=()=>{try{return JSON.parse(localStorage.getItem(LS))||null}catch{return null}};
+const save=d=>{try{localStorage.setItem(LS,JSON.stringify(d))}catch{}};
 
 function App(){
-  const save=loadSave();
-  const [screen,setScreen]=useState("menu");
-  const [category,setCategory]=useState(null);
-  const [questions,setQuestions]=useState([]);
-  const [qIndex,setQIndex]=useState(0);
-  const [score,setScore]=useState(0);
-  const [streak,setStreak]=useState(0);
-  const [bestStreak,setBestStreak]=useState(0);
-  const [timeLeft,setTimeLeft]=useState(12);
-  const [selected,setSelected]=useState(null);
-  const [showResult,setShowResult]=useState(false);
-  const [correct,setCorrect]=useState(0);
-  const [countdown,setCountdown]=useState(3);
-  const [highScore,setHighScore]=useState(save?.highScore||0);
-  const [totalPlayed,setTotalPlayed]=useState(save?.totalPlayed||0);
-  const [multiplier,setMultiplier]=useState(1);
-  const [pointsPopup,setPointsPopup]=useState(null);
-  const [answerHistory,setAnswerHistory]=useState([]);
-  const [currentThemeId,setCurrentThemeId]=useState(save?.themeId||"midnight");
-  const [level,setLevel]=useState(save?.level||1);
-  const [xp,setXp]=useState(save?.xp||0);
-  const [xpGained,setXpGained]=useState(0);
-  const [showLevelUp,setShowLevelUp]=useState(false);
-  const [newUnlocks,setNewUnlocks]=useState([]);
-  const [showShop,setShowShop]=useState(false);
-  const timerRef=useRef(null);
-  const popRef=useRef(null);
+  const sv=load();
+  const[screen,setScreen]=useState("menu");
+  const[cat,setCat]=useState(null);
+  const[qs,setQs]=useState([]);
+  const[qi,setQi]=useState(0);
+  const[score,setScore]=useState(0);
+  const[stk,setStk]=useState(0);
+  const[bstk,setBstk]=useState(0);
+  const[tl,setTl]=useState(12);
+  const[sel,setSel]=useState(null);
+  const[sr,setSr]=useState(false);
+  const[cor,setCor]=useState(0);
+  const[cd,setCd]=useState(3);
+  const[hs,setHs]=useState(sv?.hs||0);
+  const[tp,setTp]=useState(sv?.tp||0);
+  const[mult,setMult]=useState(1);
+  const[pp,setPp]=useState(null);
+  const[ah,setAh]=useState([]);
+  const[tid,setTid]=useState(sv?.tid||"midnight");
+  const[lvl,setLvl]=useState(sv?.lvl||1);
+  const[xp,setXp]=useState(sv?.xp||0);
+  const[xpg,setXpg]=useState(0);
+  const[slu,setSlu]=useState(false);
+  const[nu,setNu]=useState([]);
+  const[shop,setShop]=useState(false);
+  const[soundOn,setSoundOn]=useState(sv?.soundOn!==false);
+  const tr=useRef(null);const pr=useRef(null);const ambRef=useRef(null);
 
-  const theme=THEMES.find(t=>t.id===currentThemeId)||THEMES[0];
-  const isHard=level>=20;
-  const timePerQ=isHard?10:12;
+  const theme=THEMES.find(t=>t.id===tid)||THEMES[0];
+  const hard=lvl>=20;const tpq=hard?10:12;
 
-  // Persist progress
-  useEffect(()=>{
-    doSave({highScore,totalPlayed,themeId:currentThemeId,level,xp});
-  },[highScore,totalPlayed,currentThemeId,level,xp]);
-
-  // Update body bg on theme change
+  useEffect(()=>{save({hs,tp,tid,lvl,xp,soundOn})},[hs,tp,tid,lvl,xp,soundOn]);
   useEffect(()=>{document.body.style.background=theme.bg},[theme]);
+  useEffect(()=>{sfx.enabled=soundOn},[soundOn]);
+
+  // Ambient ping during game
+  useEffect(()=>{
+    if(screen==='game'&&cat&&cat!=='Mixed'){
+      ambRef.current=setInterval(()=>sfx.ambientPing(cat),4000+Math.random()*3000);
+      return()=>clearInterval(ambRef.current);
+    }else{clearInterval(ambRef.current);}
+  },[screen,cat]);
 
   const getPool=useCallback(c=>{
-    if(isHard)return[...(QUESTIONS_HARD[c]||[]),...(QUESTIONS_EASY[c]||[])];
-    return QUESTIONS_EASY[c]||[];
-  },[isHard]);
+    if(hard)return[...(QH[c]||[]),...(QE[c]||[])];return QE[c]||[];
+  },[hard]);
 
   const addXp=useCallback(amt=>{
     setXp(prev=>{
-      let nx=prev+amt,nl=level,unlocked=[];
-      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);unlocked=[...unlocked,...u];}
-      if(nl>level){setLevel(nl);setShowLevelUp(true);if(unlocked.length)setNewUnlocks(unlocked);setTimeout(()=>{setShowLevelUp(false);setNewUnlocks([])},3500);}
+      let nx=prev+amt,nl=lvl,ul=[];
+      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);ul=[...ul,...u];}
+      if(nl>lvl){setLvl(nl);setSlu(true);sfx.levelUp();if(ul.length)setNu(ul);setTimeout(()=>{setSlu(false);setNu([])},3500);}
       return nx;
     });
-  },[level]);
+  },[lvl]);
 
-  const startGame=useCallback(cat=>{
-    const isM=cat==="Mixed";
-    const pool=isM?CATEGORIES.flatMap(c=>getPool(c)).sort(()=>Math.random()-.5).slice(0,QS_PER_ROUND):getPool(cat).sort(()=>Math.random()-.5).slice(0,QS_PER_ROUND);
-    setCategory(cat);setQuestions(pool);setQIndex(0);setScore(0);setStreak(0);setBestStreak(0);
-    setCorrect(0);setSelected(null);setShowResult(false);setMultiplier(1);setAnswerHistory([]);
-    setCountdown(3);setScreen("countdown");setXpGained(0);
+  const startGame=useCallback(c=>{
+    sfx.init();sfx.click();
+    const isM=c==="Mixed";
+    const pool=isM?CATS.flatMap(x=>getPool(x)).sort(()=>Math.random()-.5).slice(0,QPR):getPool(c).sort(()=>Math.random()-.5).slice(0,QPR);
+    setCat(c);setQs(pool);setQi(0);setScore(0);setStk(0);setBstk(0);
+    setCor(0);setSel(null);setSr(false);setMult(1);setAh([]);
+    setCd(3);setScreen("countdown");setXpg(0);
   },[getPool]);
 
   useEffect(()=>{
     if(screen!=="countdown")return;
-    if(countdown<=0){setScreen("game");setTimeLeft(timePerQ);return;}
-    const t=setTimeout(()=>setCountdown(c=>c-1),700);
+    if(cd<=0){sfx.countdown(0);setScreen("game");setTl(tpq);return;}
+    sfx.countdown(cd);
+    const t=setTimeout(()=>setCd(c=>c-1),700);
     return()=>clearTimeout(t);
-  },[screen,countdown,timePerQ]);
+  },[screen,cd,tpq]);
 
   useEffect(()=>{
-    if(screen!=="game"||showResult)return;
-    if(timeLeft<=0){handleAnswer(-1);return;}
-    timerRef.current=setTimeout(()=>setTimeLeft(t=>t-1),1000);
-    return()=>clearTimeout(timerRef.current);
-  },[screen,timeLeft,showResult]);
+    if(screen!=="game"||sr)return;
+    if(tl<=0){handleAns(-1);return;}
+    if(tl<=3)sfx.timerWarning();
+    tr.current=setTimeout(()=>setTl(t=>t-1),1000);
+    return()=>clearTimeout(tr.current);
+  },[screen,tl,sr]);
 
-  const handleAnswer=idx=>{
-    if(showResult)return;
-    clearTimeout(timerRef.current);
-    setSelected(idx);setShowResult(true);
-    const ok=idx===questions[qIndex].a;
-    setAnswerHistory(p=>[...p,ok]);
+  const handleAns=idx=>{
+    if(sr)return;
+    clearTimeout(tr.current);
+    setSel(idx);setSr(true);
+    const ok=idx===qs[qi].a;
+    setAh(p=>[...p,ok]);
     let ep=0;
     if(ok){
-      const ns=streak+1;setStreak(ns);if(ns>bestStreak)setBestStreak(ns);
-      const nm=ns>=5?3:ns>=3?2:1;setMultiplier(nm);
-      const tb=Math.max(0,timeLeft*5);ep=(100+tb)*nm;
-      setScore(s=>s+ep);setCorrect(c=>c+1);
-      const exn=10+(isHard?5:0)+(nm>1?5:0);setXpGained(p=>p+exn);
-      setPointsPopup({pts:ep,mult:nm,timeBonus:tb});
-      clearTimeout(popRef.current);popRef.current=setTimeout(()=>setPointsPopup(null),1200);
-    }else{setStreak(0);setMultiplier(1);}
+      sfx.correct();
+      const ns=stk+1;setStk(ns);if(ns>bstk)setBstk(ns);
+      const nm=ns>=5?3:ns>=3?2:1;setMult(nm);
+      if(nm>1&&(ns===3||ns===5))sfx.multiplier();
+      if(ns>1)sfx.streak(ns);
+      const tb=Math.max(0,tl*5);ep=(100+tb)*nm;
+      setScore(s=>s+ep);setCor(c=>c+1);
+      const exn=10+(hard?5:0)+(nm>1?5:0);setXpg(p=>p+exn);
+      setPp({pts:ep,mult:nm});
+      clearTimeout(pr.current);pr.current=setTimeout(()=>setPp(null),1200);
+    }else{sfx.wrong();setStk(0);setMult(1);}
 
     setTimeout(()=>{
-      if(qIndex+1>=questions.length){
-        const fs=score+ep;if(fs>highScore)setHighScore(fs);
-        setTotalPlayed(t=>t+1);
-        addXp(xpGained+(ok?10+(isHard?5:0):0));
+      if(qi+1>=qs.length){
+        const fs=score+ep;if(fs>hs)setHs(fs);
+        setTp(t=>t+1);
+        addXp(xpg+(ok?10+(hard?5:0):0));
+        sfx.gameOver(cor+(ok?1:0)>=7);
         setScreen("result");
-      }else{setQIndex(i=>i+1);setSelected(null);setShowResult(false);setTimeLeft(timePerQ);}
+      }else{setQi(i=>i+1);setSel(null);setSr(false);setTl(tpq);}
     },1400);
   };
 
-  const cQ=questions[qIndex];
-  const cc=category&&CAT_COLORS[category]?CAT_COLORS[category]:theme.accent;
-  const xpN=xpFor(level);
-  const xpP=Math.min((xp/xpN)*100,100);
-  const lt=TITLES[Math.min(level-1,TITLES.length-1)];
+  const cQ=qs[qi];
+  const catCol=cat&&CC[cat]?CC[cat]:theme.accent;
+  const xpN=xpFor(lvl);const xpP=Math.min((xp/xpN)*100,100);
+  const lt=TITLES[Math.min(lvl-1,TITLES.length-1)];
+
+  const Btn=({children,onClick,style:s,...p})=><button onClick={e=>{sfx.init();sfx.click();onClick?.(e)}} {...p}
+    style={{...s,fontFamily:"'Outfit',sans-serif"}}>{children}</button>;
+
+  const SoundToggle=()=><button onClick={()=>{sfx.init();setSoundOn(p=>!p);sfx.click()}} style={{
+    position:'fixed',top:16,right:16,zIndex:90,background:theme.cardBg,border:`1px solid ${theme.border}`,
+    borderRadius:10,width:40,height:40,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
+    fontSize:18,transition:'all .2s',fontFamily:"'Outfit',sans-serif",
+  }}>{soundOn?'🔊':'🔇'}</button>;
 
   const ThemeShop=()=>(
-    React.createElement("div",{style:{paddingTop:32,animation:"fadeUp .5s ease"}},
-      React.createElement("div",{style:{display:"flex",alignItems:"center",marginBottom:28}},
-        React.createElement("button",{onClick:()=>setShowShop(false),style:{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:14,padding:"8px 0"}},"← Back"),
-        React.createElement("h2",{style:{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}},"Themes"),
-      ),
-      React.createElement("div",{style:{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}},
-        React.createElement("div",{style:{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}},theme.emoji),
-        React.createElement("div",null,
-          React.createElement("div",{style:{fontSize:14,fontWeight:700,color:theme.textPrimary}},`Current: ${theme.name}`),
-          React.createElement("div",{style:{fontSize:12,color:theme.textSecondary}},`Level ${level} — ${lt}`),
-        ),
-      ),
-      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
-        THEMES.map((t,i)=>{
-          const ul=t.free||level>=t.unlockLevel;const ac=t.id===currentThemeId;
-          return React.createElement("button",{key:t.id,onClick:()=>ul&&setCurrentThemeId(t.id),style:{
+    <div style={{paddingTop:32,animation:"fadeUp .5s ease"}}>
+      <div style={{display:"flex",alignItems:"center",marginBottom:28}}>
+        <Btn onClick={()=>setShop(false)} style={{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontSize:14,padding:"8px 0"}}>← Back</Btn>
+        <h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}}>Themes</h2>
+      </div>
+      <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}}>{theme.emoji}</div>
+        <div><div style={{fontSize:14,fontWeight:700,color:theme.textPrimary}}>Current: {theme.name}</div>
+        <div style={{fontSize:12,color:theme.textSecondary}}>Level {lvl} — {lt}</div></div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {THEMES.map((t,i)=>{
+          const ul=t.free||lvl>=t.unlockLevel;const ac=t.id===tid;
+          return <Btn key={t.id} onClick={()=>{if(ul){setTid(t.id);sfx.themeSelect();}}} style={{
             background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,
             borderRadius:14,padding:"16px 18px",cursor:ul?"pointer":"default",display:"flex",alignItems:"center",gap:14,
-            width:"100%",textAlign:"left",fontFamily:"'Outfit',sans-serif",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
-          }},
-            React.createElement("div",{style:{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}},
-              React.createElement("div",{style:{position:"absolute",bottom:4,right:4,fontSize:16}},t.emoji),
-            ),
-            React.createElement("div",{style:{flex:1}},
-              React.createElement("div",{style:{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}},t.name,ac&&React.createElement("span",{style:{marginLeft:8,fontSize:11,color:t.accent}},"ACTIVE")),
-              React.createElement("div",{style:{fontSize:12,color:theme.textSecondary,marginTop:2}},t.free?"Free":ul?"✓ Unlocked":`🔒 Unlock at Level ${t.unlockLevel}`),
-            ),
-            !ul&&React.createElement("div",{style:{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}},`Lv.${t.unlockLevel}`),
-            ul&&!ac&&React.createElement("div",{style:{fontSize:12,fontWeight:700,color:t.accent}},"SELECT"),
-          );
-        }),
-      ),
-    )
+            width:"100%",textAlign:"left",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
+          }}>
+            <div style={{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",bottom:4,right:4,fontSize:16}}>{t.emoji}</div></div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}}>{t.name}{ac&&<span style={{marginLeft:8,fontSize:11,color:t.accent}}>ACTIVE</span>}</div>
+              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{t.free?"Free":ul?"✓ Unlocked":`🔒 Level ${t.unlockLevel}`}</div>
+            </div>
+            {!ul&&<div style={{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}}>Lv.{t.unlockLevel}</div>}
+            {ul&&!ac&&<div style={{fontSize:12,fontWeight:700,color:t.accent}}>SELECT</div>}
+          </Btn>;
+        })}
+      </div>
+    </div>
   );
 
-  // JSX rendering
   return(
     <div style={{minHeight:"100vh",background:theme.bg,color:theme.textPrimary,fontFamily:"'Outfit',sans-serif",position:"relative",overflow:"hidden"}}>
       <div style={{position:"fixed",inset:0,background:theme.gradient,pointerEvents:"none",animation:"glowPulse 4s ease-in-out infinite"}}/>
+      <SoundToggle/>
+
+      {/* Category animated background during game */}
+      {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol}/>}
+
       <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
 
-      {showLevelUp&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      {/* LEVEL UP */}
+      {slu&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <div style={{animation:"levelUp .6s ease",textAlign:"center"}}>
           <div style={{fontSize:16,color:theme.accent,letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>LEVEL UP!</div>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{level}</div>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{lvl}</div>
           <div style={{fontSize:18,color:theme.textSecondary,marginTop:8,fontWeight:600}}>{lt}</div>
-          {level===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
-          {newUnlocks.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:24}}>{t.emoji}</span>
-            <div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME UNLOCKED</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div>
-          </div>)}
+          {lvl===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
+          {nu.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:24}}>{t.emoji}</span><div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div></div>)}
         </div>
       </div>}
 
-      {showShop&&screen==="menu"&&<ThemeShop/>}
+      {shop&&screen==="menu"&&<ThemeShop/>}
 
-      {screen==="menu"&&!showShop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
+      {/* MENU */}
+      {screen==="menu"&&!shop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:13,letterSpacing:6,color:theme.accent,fontWeight:600,textTransform:"uppercase",marginBottom:10}}>⚡ Quiz</div>
           <h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:52,margin:0,background:`linear-gradient(135deg,${theme.textPrimary} 30%,${theme.accent} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.1}}>BLITZ</h1>
+          <div style={{fontSize:11,color:theme.textSecondary,marginTop:6,letterSpacing:2}}>v2.0 — Sound & Visuals</div>
         </div>
 
         <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:8,border:`1px solid ${theme.border}`}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{level}</div>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div>
-                <div style={{fontSize:11,color:theme.textSecondary}}>Level {level}</div>
-              </div>
+              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{lvl}</div>
+              <div><div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div><div style={{fontSize:11,color:theme.textSecondary}}>Level {lvl}</div></div>
             </div>
             <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
           </div>
           <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-            <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s ease"}}/>
+            <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s"}}/>
           </div>
-          {isHard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE — Harder questions, 10s timer</div>}
+          {hard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE ACTIVE</div>}
         </div>
 
         <div style={{display:"flex",gap:8,marginBottom:20}}>
-          {totalPlayed>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{highScore.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
-            <div style={{width:1,background:theme.border}}/>
-            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{totalPlayed}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
+          {tp>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{hs.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
+            <div style={{width:1,background:theme.border}}/><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{tp}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
           </div>}
-          <button onClick={()=>setShowShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:totalPlayed>0?"column":"row",alignItems:"center",justifyContent:"center",gap:totalPlayed>0?4:10,minWidth:totalPlayed>0?72:"100%",fontFamily:"'Outfit',sans-serif",transition:"all .2s"}}>
-            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:totalPlayed>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
-          </button>
+          <Btn onClick={()=>setShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:tp>0?"column":"row",alignItems:"center",justifyContent:"center",gap:tp>0?4:10,minWidth:tp>0?72:"100%",transition:"all .2s"}}>
+            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:tp>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
+          </Btn>
         </div>
 
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {CATEGORIES.map((cat,i)=><button key={cat} onClick={()=>startGame(cat)} style={{
+          {CATS.map((c,i)=><Btn key={c} onClick={()=>startGame(c)} style={{
             background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",
             cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,
-            transition:"all .25s",width:"100%",textAlign:"left",fontFamily:"'Outfit',sans-serif",
+            transition:"all .25s",width:"100%",textAlign:"left",
           }}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=CAT_COLORS[cat]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
+            onMouseEnter={e=>{sfx.init();sfx.hover();e.currentTarget.style.borderColor=CC[c]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}
           >
-            <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CAT_COLORS[cat]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CAT_ICONS[cat]}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{cat}</div>
-              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(cat).length} questions{isHard&&" • Hard"}</div>
-            </div>
-            <div style={{color:CAT_COLORS[cat],fontSize:13,fontWeight:600}}>PLAY →</div>
-          </button>)}
+            <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CC[c]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CI[c]}</div>
+            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{c}</div><div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(c).length} questions{hard&&" • Hard"}</div></div>
+            <div style={{color:CC[c],fontSize:13,fontWeight:600}}>PLAY →</div>
+          </Btn>)}
         </div>
 
-        <button onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
+        <Btn onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
           onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
-        >🔀 MIXED BLITZ — All Categories</button>
+        >🔀 MIXED BLITZ — All Categories</Btn>
       </div>}
 
+      {/* COUNTDOWN */}
       {screen==="countdown"&&<div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontSize:14,color:cc,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CAT_ICONS[category]||"🔀"} {category}{isHard&&" • HARD"}</div>
-        {countdown>0?<div key={countdown} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:cc,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${cc}44`}}>{countdown}</div>
-        :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:cc,animation:"countIn .5s ease",textShadow:`0 0 40px ${cc}44`}}>GO!</div>}
+        <div style={{fontSize:14,color:catCol,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CI[cat]||"🔀"} {cat}{hard&&" • HARD"}</div>
+        {cd>0?<div key={cd} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:catCol,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${catCol}44`}}>{cd}</div>
+        :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:catCol,animation:"countIn .5s ease",textShadow:`0 0 40px ${catCol}44`}}>GO!</div>}
       </div>}
 
+      {/* GAME */}
       {screen==="game"&&cQ&&<div style={{paddingTop:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:cc,fontWeight:700}}>{qIndex+1}</span> / {questions.length}{isHard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
+          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:catCol,fontWeight:700}}>{qi+1}</span> / {qs.length}{hard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
           <div style={{fontSize:15,fontWeight:800,color:theme.textPrimary}}>{score.toLocaleString()}<span style={{fontSize:11,color:theme.textSecondary,marginLeft:4}}>pts</span></div>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:20}}>
-          {questions.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<qIndex?(answerHistory[i]?theme.accent:"#FF4444"):i===qIndex?cc+"44":theme.border,transition:"background .3s"}}/>)}
+          {qs.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<qi?(ah[i]?theme.accent:"#FF4444"):i===qi?catCol+"44":theme.border,transition:"background .3s"}}/>)}
         </div>
         <div style={{position:"relative",marginBottom:24}}>
           <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-            <div style={{height:"100%",borderRadius:3,width:`${(timeLeft/timePerQ)*100}%`,background:timeLeft<=3?"linear-gradient(90deg,#FF4444,#FF6B6B)":`linear-gradient(90deg,${cc},${cc}88)`,transition:"width 1s linear,background .3s",...(timeLeft<=3?{animation:"timerPulse .5s ease infinite"}:{})}}/>
+            <div style={{height:"100%",borderRadius:3,width:`${(tl/tpq)*100}%`,background:tl<=3?"linear-gradient(90deg,#FF4444,#FF6B6B)":`linear-gradient(90deg,${catCol},${catCol}88)`,transition:"width 1s linear,background .3s",...(tl<=3?{animation:"timerPulse .5s ease infinite"}:{})}}/>
           </div>
-          <div style={{position:"absolute",right:0,top:-24,fontSize:18,fontWeight:800,color:timeLeft<=3?"#FF4444":cc,fontFamily:"'Dela Gothic One',cursive",...(timeLeft<=3?{animation:"pulse .5s ease infinite"}:{})}}>{timeLeft}s</div>
+          <div style={{position:"absolute",right:0,top:-24,fontSize:18,fontWeight:800,color:tl<=3?"#FF4444":catCol,fontFamily:"'Dela Gothic One',cursive",...(tl<=3?{animation:"pulse .5s ease infinite"}:{})}}>{tl}s</div>
         </div>
-        {streak>0&&<div key={streak} style={{display:"flex",justifyContent:"center",marginBottom:16,animation:"streakPop .4s ease"}}>
-          <div style={{background:multiplier>=3?"linear-gradient(135deg,#FF6B6B22,#FFE66D22)":multiplier>=2?cc+"15":theme.border,border:`1px solid ${multiplier>=3?"#FFE66D44":multiplier>=2?cc+"33":theme.border}`,borderRadius:20,padding:"6px 16px",display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:14}}>🔥</span><span style={{fontSize:13,fontWeight:700,color:multiplier>=3?"#FFE66D":cc}}>{streak} streak</span>
-            {multiplier>1&&<span style={{fontSize:12,fontWeight:800,background:multiplier>=3?"#FFE66D":cc,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{multiplier}</span>}
+        {stk>0&&<div key={stk} style={{display:"flex",justifyContent:"center",marginBottom:16,animation:"streakPop .4s ease"}}>
+          <div style={{background:mult>=3?"linear-gradient(135deg,#FF6B6B22,#FFE66D22)":mult>=2?catCol+"15":theme.border,border:`1px solid ${mult>=3?"#FFE66D44":mult>=2?catCol+"33":theme.border}`,borderRadius:20,padding:"6px 16px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14}}>🔥</span><span style={{fontSize:13,fontWeight:700,color:mult>=3?"#FFE66D":catCol}}>{stk} streak</span>
+            {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
           </div>
         </div>}
-        <div style={{animation:"scaleIn .35s ease",background:theme.cardBg,borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20}}>
+        <div style={{animation:"scaleIn .35s ease",background:theme.cardBg+'DD',backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20}}>
           <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {cQ.opts.map((opt,i)=>{
-            const isCA=i===cQ.a,isSel=selected===i,wasW=showResult&&isSel&&!isCA,shC=showResult&&isCA;
+            const isCA=i===cQ.a,isSel=sel===i,wasW=sr&&isSel&&!isCA,shC=sr&&isCA;
             const lb=["A","B","C","D"];
-            let bg=theme.cardBg,bd=theme.border,tc=theme.textPrimary,an="";
+            let bg=theme.cardBg+'DD',bd=theme.border,tc=theme.textPrimary,an="";
             if(shC){bg=theme.accent+"15";bd=theme.accent+"55";tc=theme.accent;}
             if(wasW){bg="#FF444415";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
-            return <button key={i} onClick={()=>handleAnswer(i)} disabled={showResult} style={{
-              background:bg,border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",cursor:showResult?"default":"pointer",
-              display:"flex",alignItems:"center",gap:14,fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,
-              transition:"all .2s",animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
+            return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
+              background:bg,backdropFilter:'blur(8px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
+              cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
+              fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
+              animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
             }}
-              onMouseEnter={e=>{if(!showResult){e.currentTarget.style.borderColor=cc+"44";e.currentTarget.style.background=theme.cardHover;}}}
-              onMouseLeave={e=>{if(!showResult){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;}}}
+              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"44";e.currentTarget.style.background=theme.cardHover+'DD';}}}
+              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg+'DD';}}}
             >
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
                 {shC?"✓":wasW?"✗":lb[i]}
-              </div>
-              <span>{opt}</span>
+              </div><span>{opt}</span>
             </button>;
           })}
         </div>
-        {pointsPopup&&<div key={score} style={{position:"fixed",top:"36%",left:"50%",transform:"translateX(-50%)",animation:"slideDown .4s ease,fadeUp .3s ease 1s reverse forwards",textAlign:"center",pointerEvents:"none",zIndex:50}}>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:36,color:cc,textShadow:`0 0 30px ${cc}66`}}>+{pointsPopup.pts}</div>
-          {pointsPopup.mult>1&&<div style={{fontSize:14,color:"#FFE66D",fontWeight:700,marginTop:4}}>×{pointsPopup.mult} MULTIPLIER</div>}
+        {pp&&<div key={score} style={{position:"fixed",top:"36%",left:"50%",transform:"translateX(-50%)",animation:"slideDown .4s ease,fadeUp .3s ease 1s reverse forwards",textAlign:"center",pointerEvents:"none",zIndex:50}}>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:36,color:catCol,textShadow:`0 0 30px ${catCol}66`}}>+{pp.pts}</div>
+          {pp.mult>1&&<div style={{fontSize:14,color:"#FFE66D",fontWeight:700,marginTop:4}}>×{pp.mult} MULTIPLIER</div>}
         </div>}
       </div>}
 
+      {/* RESULT */}
       {screen==="result"&&<div style={{paddingTop:48,paddingBottom:40,animation:"fadeUp .6s ease"}}>
-        {correct>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[cc,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
+        {cor>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[catCol,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
         <div style={{textAlign:"center",position:"relative",zIndex:1}}>
           <div style={{fontSize:14,color:theme.textSecondary,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Final Score</div>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${cc})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
-          {score>=highScore&&totalPlayed>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
-          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CAT_ICONS[category]||"🔀"} {category}{isHard&&" • Hard Mode"}</div>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${catCol})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
+          {score>=hs&&tp>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
+          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CI[cat]||"🔀"} {cat}{hard&&" • Hard"}</div>
 
           <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:20,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <span style={{fontSize:13,color:theme.textSecondary}}>Level {level} — {lt}</span>
-              <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpGained} XP</span>
+              <span style={{fontSize:13,color:theme.textSecondary}}>Level {lvl} — {lt}</span>
+              <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpg} XP</span>
             </div>
             <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-              <div style={{width:`${(xp/xpFor(level))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
+              <div style={{width:`${(xp/xpFor(lvl))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
             </div>
-            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(level)} XP to next level</div>
+            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(lvl)} XP to next</div>
           </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
-            {[{l:"Correct",v:`${correct}/${questions.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((correct/questions.length)*100)}%`,c:cc},{l:"Best Streak",v:bestStreak,c:"#FFE66D"},{l:"Top Mult",v:`×${bestStreak>=5?3:bestStreak>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
+            {[{l:"Correct",v:`${cor}/${qs.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((cor/qs.length)*100)}%`,c:catCol},{l:"Best Streak",v:bstk,c:"#FFE66D"},{l:"Top Mult",v:`×${bstk>=5?3:bstk>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
               <div key={i} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,padding:"18px 14px",animation:`fadeUp .4s ease ${.2+i*.06}s both`}}>
                 <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Dela Gothic One',cursive"}}>{s.v}</div>
                 <div style={{fontSize:11,color:theme.textSecondary,marginTop:4,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
               </div>
             )}
           </div>
-
           <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24,animation:"fadeUp .5s ease .45s both"}}>
-            {answerHistory.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
+            {ah.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
           </div>
-
           <div style={{fontSize:15,color:theme.textSecondary,marginBottom:28,lineHeight:1.6,animation:"fadeUp .5s ease .5s both"}}>
-            {correct>=9?"🏆 Incredible! You absolutely crushed it!":correct>=7?"🎉 Great job! You really know your stuff!":correct>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
+            {cor>=9?"🏆 Incredible! Absolutely crushed it!":cor>=7?"🎉 Great job! You know your stuff!":cor>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
           </div>
-
           <div style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeUp .5s ease .55s both"}}>
-            <button onClick={()=>startGame(category)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${cc},${cc}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
+            <Btn onClick={()=>startGame(cat)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${catCol},${catCol}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
               onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
-            >Play Again — {category}</button>
-            <button onClick={()=>{setScreen("menu");setShowShop(false);}} style={{width:"100%",padding:"16px 24px",background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:15,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+            >Play Again — {cat}</Btn>
+            <Btn onClick={()=>{setScreen("menu");setShop(false);}} style={{width:"100%",padding:"16px 24px",background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:15,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.textSecondary;e.currentTarget.style.color=theme.textPrimary;}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
-            >← Back to Categories</button>
+            >← Back to Categories</Btn>
+            <Btn onClick={()=>{
+              const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${lvl} ${lt}. Can you beat me? ${window.location.href}`;
+              if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
+              else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied! Share it 🎉")).catch(()=>{})}
+            }} style={{width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.accent;e.currentTarget.style.color=theme.accent;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
+            >📤 Share Score</Btn>
           </div>
-
-          <button onClick={()=>{
-            const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${level} ${lt}. Can you beat me? Play free at ${window.location.href}`;
-            if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
-            else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied to clipboard! Share it with friends 🎉")).catch(()=>{})}
-          }} style={{marginTop:12,width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.accent;e.currentTarget.style.color=theme.accent;}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
-          >📤 Share Score with Friends</button>
         </div>
       </div>}
 
@@ -534,13 +717,7 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-
-// Register Service Worker
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("/sw.js").catch(()=>{});
-  });
-}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})});}
 </script>
 </body>
 </html>
