@@ -851,24 +851,26 @@ function App(){
             {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
           </div>
         </div>}
-        <div style={{animation:"scaleIn .35s ease",background:theme.cardBg+'DD',backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20}}>
+        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,
+          boxShadow:`0 0 30px ${catCol}11, inset 0 1px 0 ${theme.textPrimary}08`}}>
           <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {cQ.opts.map((opt,i)=>{
             const isCA=i===cQ.a,isSel=sel===i,wasW=sr&&isSel&&!isCA,shC=sr&&isCA;
             const lb=["A","B","C","D"];
-            let bg=theme.cardBg+'DD',bd=theme.border,tc=theme.textPrimary,an="";
-            if(shC){bg=theme.accent+"15";bd=theme.accent+"55";tc=theme.accent;}
-            if(wasW){bg="#FF444415";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
+            let bg=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`,bd=theme.border,tc=theme.textPrimary,an="";
+            if(shC){bg=theme.accent+"20";bd=theme.accent+"55";tc=theme.accent;}
+            if(wasW){bg="#FF444420";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
             return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
-              background:bg,backdropFilter:'blur(8px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
+              background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
               cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
               fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
               animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
+              boxShadow:`0 2px 12px ${theme.bg}88`,
             }}
-              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"44";e.currentTarget.style.background=theme.cardHover+'DD';}}}
-              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg+'DD';}}}
+              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"55";e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardHover}F5,${theme.cardHover}EE)`;e.currentTarget.style.boxShadow=`0 4px 20px ${catCol}15`;}}}
+              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}
             >
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
                 {shC?"✓":wasW?"✗":lb[i]}
