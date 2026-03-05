@@ -1,0 +1,16 @@
+{
+  "name": "Quiz Blitz — Test Your Knowledge",
+  "short_name": "Quiz Blitz",
+  "description": "Fast-paced trivia game with streaks, multipliers, and unlockable themes. Beat the clock!",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0F",
+  "theme_color": "#00E5A0",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "en"
+}

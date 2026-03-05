@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Fast-paced trivia game with streaks, multipliers, and unlockable themes. Beat the clock!">
+<title>Quiz Blitz</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-512.png">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,#root{height:100%;width:100%;overflow-x:hidden}
+body{background:#0A0A0F;font-family:'Outfit',sans-serif;color:#F5F5F5;overscroll-behavior:none}
+button{font-family:'Outfit',sans-serif;outline:none}
+::-webkit-scrollbar{width:0;display:none}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-30px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes streakPop{0%{transform:scale(0) rotate(-10deg);opacity:0}60%{transform:scale(1.2) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes timerPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.4)}50%{box-shadow:0 0 0 8px rgba(255,59,48,0)}}
+@keyframes confetti{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(400px) rotate(720deg);opacity:0}}
+@keyframes countIn{0%{transform:scale(3);opacity:0}50%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes glowPulse{0%,100%{opacity:.4}50%{opacity:.8}}
+@keyframes levelUp{0%{transform:scale(.5) rotate(-5deg);opacity:0}50%{transform:scale(1.15) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes xpFill{from{width:0}}
+@keyframes unlockGlow{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.3)}50%{box-shadow:0 0 40px rgba(255,215,0,.6)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel" data-type="module">
+const {useState,useEffect,useCallback,useRef} = React;
+
+const THEMES=[
+{id:"midnight",name:"Midnight",free:true,unlockLevel:0,bg:"#0A0A0F",cardBg:"#111118",cardHover:"#15151F",border:"#1A1A2E",accent:"#00E5A0",accentAlt:"#00B4D8",textPrimary:"#F5F5F5",textSecondary:"#555",gradient:"radial-gradient(ellipse at 20% 50%,#00E5A008 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#00B4D806 0%,transparent 50%)",preview:"linear-gradient(135deg,#0A0A0F,#111118,#0A0A0F)",emoji:"🌙"},
+{id:"ember",name:"Ember",free:true,unlockLevel:0,bg:"#0F0A08",cardBg:"#1A1210",cardHover:"#221815",border:"#2E1A14",accent:"#FF6B35",accentAlt:"#FFB347",textPrimary:"#FFF0E6",textSecondary:"#665544",gradient:"radial-gradient(ellipse at 30% 20%,#FF6B3508 0%,transparent 50%),radial-gradient(ellipse at 70% 90%,#FFB34706 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0A08,#1A1210,#0F0A08)",emoji:"🔥"},
+{id:"ocean",name:"Deep Ocean",free:false,unlockLevel:5,bg:"#060D14",cardBg:"#0C1A28",cardHover:"#102236",border:"#153050",accent:"#00D4FF",accentAlt:"#0088CC",textPrimary:"#E0F4FF",textSecondary:"#446688",gradient:"radial-gradient(ellipse at 50% 100%,#00D4FF06 0%,transparent 50%),radial-gradient(ellipse at 20% 20%,#00336608 0%,transparent 50%)",preview:"linear-gradient(135deg,#060D14,#0C1A28,#060D14)",emoji:"🌊"},
+{id:"aurora",name:"Aurora",free:false,unlockLevel:10,bg:"#080B16",cardBg:"#101428",cardHover:"#161C36",border:"#1E2850",accent:"#A78BFA",accentAlt:"#34D399",textPrimary:"#EDE9FE",textSecondary:"#6B5FA0",gradient:"radial-gradient(ellipse at 20% 30%,#A78BFA08 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#34D39906 0%,transparent 50%)",preview:"linear-gradient(135deg,#080B16,#1E1048,#080B16)",emoji:"🌌"},
+{id:"sakura",name:"Sakura",free:false,unlockLevel:15,bg:"#140A10",cardBg:"#1F1018",cardHover:"#2A1622",border:"#3D1C2E",accent:"#FF77A9",accentAlt:"#FFB7D5",textPrimary:"#FFE8F0",textSecondary:"#885566",gradient:"radial-gradient(ellipse at 60% 20%,#FF77A908 0%,transparent 50%),radial-gradient(ellipse at 30% 80%,#FFB7D506 0%,transparent 50%)",preview:"linear-gradient(135deg,#140A10,#2A1222,#140A10)",emoji:"🌸"},
+{id:"golden",name:"Golden Age",free:false,unlockLevel:20,bg:"#0F0D06",cardBg:"#1C1808",cardHover:"#26220E",border:"#3D3410",accent:"#FFD700",accentAlt:"#FFA500",textPrimary:"#FFF8DC",textSecondary:"#887744",gradient:"radial-gradient(ellipse at 40% 30%,#FFD70008 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#FFA50006 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0D06,#1C1808,#0F0D06)",emoji:"👑"},
+{id:"neon",name:"Neon Nights",free:false,unlockLevel:25,bg:"#05000A",cardBg:"#0E0518",cardHover:"#150822",border:"#2A1050",accent:"#E040FB",accentAlt:"#00E5FF",textPrimary:"#F3E5F5",textSecondary:"#7744AA",gradient:"radial-gradient(ellipse at 30% 50%,#E040FB06 0%,transparent 50%),radial-gradient(ellipse at 80% 30%,#00E5FF05 0%,transparent 50%)",preview:"linear-gradient(135deg,#05000A,#1A0530,#05000A)",emoji:"💜"},
+{id:"matrix",name:"Matrix",free:false,unlockLevel:30,bg:"#000A00",cardBg:"#001A00",cardHover:"#002400",border:"#003D00",accent:"#00FF41",accentAlt:"#00CC33",textPrimary:"#CCFFCC",textSecondary:"#337733",gradient:"radial-gradient(ellipse at 50% 50%,#00FF4106 0%,transparent 50%)",preview:"linear-gradient(135deg,#000A00,#001A00,#000A00)",emoji:"🟢"},
+];
+
+const QUESTIONS_EASY={
+Science:[
+{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},
+{q:"How many bones are in the adult human body?",opts:["186","206","226","196"],a:1},
+{q:"What planet is known as the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},
+{q:"What gas do plants absorb from the atmosphere?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},
+{q:"Which element has the atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},
+{q:"What is the hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},
+{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},
+{q:"What organ filters blood in the body?",opts:["Liver","Heart","Kidney","Lungs"],a:2},
+{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},
+{q:"What is the largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2},
+],
+History:[
+{q:"In what year did World War II end?",opts:["1943","1944","1945","1946"],a:2},
+{q:"Who first walked on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},
+{q:"Which civilization built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},
+{q:"In what year did Bangladesh gain independence?",opts:["1947","1965","1971","1975"],a:2},
+{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},
+{q:"What empire was ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},
+{q:"The Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},
+{q:"The Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},
+{q:"Who was the first President of the USA?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},
+{q:"What ancient city was buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2},
+],
+Geography:[
+{q:"What is the largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},
+{q:"What is the capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},
+{q:"Which river is the longest in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},
+{q:"What is the smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},
+{q:"The Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},
+{q:"Which country is the Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},
+{q:"What is the largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},
+{q:"How many continents are there?",opts:["5","6","7","8"],a:2},
+{q:"What is the tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},
+{q:"Which country has the most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2},
+],
+"Pop Culture":[
+{q:"Highest-grossing film of all time (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},
+{q:"Who wrote the Harry Potter series?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},
+{q:"What year was the first iPhone released?",opts:["2005","2006","2007","2008"],a:2},
+{q:"Which band performed 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},
+{q:"In what year was YouTube founded?",opts:["2003","2005","2007","2009"],a:1},
+{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},
+{q:"What gaming console is made by Nintendo?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},
+{q:"What is Mario's brother's name?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},
+{q:"Which movie features a character named Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},
+{q:"What is the name of Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1},
+],
+Tech:[
+{q:"What does 'HTTP' stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},
+{q:"Who is the father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},
+{q:"Most used language for web development?",opts:["Python","Java","JavaScript","C++"],a:2},
+{q:"What does 'AI' stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},
+{q:"Who developed the Android OS?",opts:["Apple","Microsoft","Google","Samsung"],a:2},
+{q:"How many bits are in a byte?",opts:["4","6","8","16"],a:2},
+{q:"What does 'URL' stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},
+{q:"Which company makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},
+{q:"What year was the World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},
+{q:"What does 'RAM' stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0},
+],
+};
+
+const QUESTIONS_HARD={
+Science:[
+{q:"What is the Heisenberg Uncertainty Principle about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},
+{q:"Most abundant gas in Earth's atmosphere?",opts:["Oxygen","Nitrogen","Carbon Dioxide","Argon"],a:1},
+{q:"What temperature is absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},
+{q:"Which subatomic particle has no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},
+{q:"Half-life of Carbon-14 approximately?",opts:["2,730 years","5,730 years","11,460 years","1,200 years"],a:1},
+{q:"Which vitamin is produced from sunlight?",opts:["Vitamin A","Vitamin B12","Vitamin C","Vitamin D"],a:3},
+{q:"What causes a star to become a black hole?",opts:["Nuclear fission","Gravitational collapse","Nuclear fusion","Thermal expansion"],a:1},
+{q:"What is the Chandrasekhar limit?",opts:["Max mass of white dwarf","Speed of light","Planck length","Bohr radius"],a:0},
+{q:"What is the pH of pure water?",opts:["5","7","8","6"],a:1},
+{q:"What particle does beta decay emit?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1},
+],
+History:[
+{q:"Treaty of Westphalia ended which conflict?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},
+{q:"Who was the last Mughal Emperor of India?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},
+{q:"Code name for the D-Day invasion?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},
+{q:"Rosetta Stone helped decipher which script?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},
+{q:"Who led the Salt March in 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},
+{q:"What year was the Magna Carta signed?",opts:["1066","1215","1315","1492"],a:1},
+{q:"Ottoman Empire fell after which war?",opts:["Crimean War","Balkan Wars","World War I","World War II"],a:2},
+{q:"Who wrote 'The Art of War'?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},
+{q:"Eastern Roman Empire was also known as?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},
+{q:"Silk Road connected Rome to which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2},
+],
+Geography:[
+{q:"Deepest point in the ocean?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},
+{q:"Which country has the most time zones?",opts:["Russia","USA","France","China"],a:2},
+{q:"What is the driest continent on Earth?",opts:["Africa","Australia","Antarctica","Asia"],a:2},
+{q:"Lake Baikal is in which country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},
+{q:"What strait separates Europe from Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},
+{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},
+{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},
+{q:"Which African country was never colonized?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},
+{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},
+{q:"Which country straddles two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3},
+],
+"Pop Culture":[
+{q:"First film to win Best Picture Oscar?",opts:["Sunrise","Wings","The Jazz Singer","Metropolis"],a:1},
+{q:"Who created Sherlock Holmes?",opts:["Agatha Christie","Arthur Conan Doyle","Edgar Allan Poe","Dickens"],a:1},
+{q:"First video game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},
+{q:"First feature-length animated film ever?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},
+{q:"Who directed 'Parasite' (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},
+{q:"Best-selling video game of all time?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},
+{q:"Netflix's first original series?",opts:["Stranger Things","House of Cards","Orange Is the New Black","Narcos"],a:1},
+{q:"Highest-rated anime on MAL?",opts:["Attack on Titan","FMA: Brotherhood","Steins;Gate","Gintama"],a:1},
+{q:"What year did Spotify launch?",opts:["2006","2008","2010","2012"],a:1},
+{q:"Who composed the Interstellar soundtrack?",opts:["John Williams","Hans Zimmer","Howard Shore","Danny Elfman"],a:1},
+],
+Tech:[
+{q:"Who invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},
+{q:"Time complexity of binary search?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},
+{q:"What paradigm does Haskell use?",opts:["Object-oriented","Procedural","Functional","Logic"],a:2},
+{q:"First commercial microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},
+{q:"What OSI layer handles routing?",opts:["Transport","Network","Data Link","Session"],a:1},
+{q:"Bitcoin's consensus mechanism?",opts:["Proof of Stake","Proof of Work","Delegated Proof","Proof of Authority"],a:1},
+{q:"What does 'CUDA' stand for?",opts:["Compute Unified Device Architecture","Central Unit Data Access","Compiled Universal Driver API","Core Unified Data Arch"],a:0},
+{q:"What does 'LIDAR' stand for?",opts:["Light Detection And Ranging","Laser Imaging Detection And Ranging","Light Integrated Data Radar","Laser Infrared Detection"],a:0},
+{q:"Linux kernel written in which language?",opts:["C++","C","Assembly","Rust"],a:1},
+{q:"What does 'API' stand for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0},
+],
+};
+
+const CATEGORIES=Object.keys(QUESTIONS_EASY);
+const CAT_COLORS={Science:"#00E5A0",History:"#FF6B6B",Geography:"#4ECDC4","Pop Culture":"#FFE66D",Tech:"#7B68EE"};
+const CAT_ICONS={Science:"🧬",History:"🏛️",Geography:"🌍","Pop Culture":"🎬",Tech:"💻"};
+const QS_PER_ROUND=10;
+const xpFor=l=>100+(l-1)*60;
+const TITLES=["Newbie","Rookie","Learner","Student","Scholar","Thinker","Sharp Mind","Brainiac","Expert","Genius","Mastermind","Prodigy","Sage","Oracle","Luminary","Visionary","Legend","Mythic","Titan","Immortal","Challenger","Champion","Conqueror","Ascendant","Paragon","Transcendent","Architect","Overlord","Cosmic Brain","GOAT","∞"];
+
+const LS_KEY="quiz_blitz_save";
+const loadSave=()=>{try{const d=JSON.parse(localStorage.getItem(LS_KEY));return d||null}catch{return null}};
+const doSave=(d)=>{try{localStorage.setItem(LS_KEY,JSON.stringify(d))}catch{}};
+
+function App(){
+  const save=loadSave();
+  const [screen,setScreen]=useState("menu");
+  const [category,setCategory]=useState(null);
+  const [questions,setQuestions]=useState([]);
+  const [qIndex,setQIndex]=useState(0);
+  const [score,setScore]=useState(0);
+  const [streak,setStreak]=useState(0);
+  const [bestStreak,setBestStreak]=useState(0);
+  const [timeLeft,setTimeLeft]=useState(12);
+  const [selected,setSelected]=useState(null);
+  const [showResult,setShowResult]=useState(false);
+  const [correct,setCorrect]=useState(0);
+  const [countdown,setCountdown]=useState(3);
+  const [highScore,setHighScore]=useState(save?.highScore||0);
+  const [totalPlayed,setTotalPlayed]=useState(save?.totalPlayed||0);
+  const [multiplier,setMultiplier]=useState(1);
+  const [pointsPopup,setPointsPopup]=useState(null);
+  const [answerHistory,setAnswerHistory]=useState([]);
+  const [currentThemeId,setCurrentThemeId]=useState(save?.themeId||"midnight");
+  const [level,setLevel]=useState(save?.level||1);
+  const [xp,setXp]=useState(save?.xp||0);
+  const [xpGained,setXpGained]=useState(0);
+  const [showLevelUp,setShowLevelUp]=useState(false);
+  const [newUnlocks,setNewUnlocks]=useState([]);
+  const [showShop,setShowShop]=useState(false);
+  const timerRef=useRef(null);
+  const popRef=useRef(null);
+
+  const theme=THEMES.find(t=>t.id===currentThemeId)||THEMES[0];
+  const isHard=level>=20;
+  const timePerQ=isHard?10:12;
+
+  // Persist progress
+  useEffect(()=>{
+    doSave({highScore,totalPlayed,themeId:currentThemeId,level,xp});
+  },[highScore,totalPlayed,currentThemeId,level,xp]);
+
+  // Update body bg on theme change
+  useEffect(()=>{document.body.style.background=theme.bg},[theme]);
+
+  const getPool=useCallback(c=>{
+    if(isHard)return[...(QUESTIONS_HARD[c]||[]),...(QUESTIONS_EASY[c]||[])];
+    return QUESTIONS_EASY[c]||[];
+  },[isHard]);
+
+  const addXp=useCallback(amt=>{
+    setXp(prev=>{
+      let nx=prev+amt,nl=level,unlocked=[];
+      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);unlocked=[...unlocked,...u];}
+      if(nl>level){setLevel(nl);setShowLevelUp(true);if(unlocked.length)setNewUnlocks(unlocked);setTimeout(()=>{setShowLevelUp(false);setNewUnlocks([])},3500);}
+      return nx;
+    });
+  },[level]);
+
+  const startGame=useCallback(cat=>{
+    const isM=cat==="Mixed";
+    const pool=isM?CATEGORIES.flatMap(c=>getPool(c)).sort(()=>Math.random()-.5).slice(0,QS_PER_ROUND):getPool(cat).sort(()=>Math.random()-.5).slice(0,QS_PER_ROUND);
+    setCategory(cat);setQuestions(pool);setQIndex(0);setScore(0);setStreak(0);setBestStreak(0);
+    setCorrect(0);setSelected(null);setShowResult(false);setMultiplier(1);setAnswerHistory([]);
+    setCountdown(3);setScreen("countdown");setXpGained(0);
+  },[getPool]);
+
+  useEffect(()=>{
+    if(screen!=="countdown")return;
+    if(countdown<=0){setScreen("game");setTimeLeft(timePerQ);return;}
+    const t=setTimeout(()=>setCountdown(c=>c-1),700);
+    return()=>clearTimeout(t);
+  },[screen,countdown,timePerQ]);
+
+  useEffect(()=>{
+    if(screen!=="game"||showResult)return;
+    if(timeLeft<=0){handleAnswer(-1);return;}
+    timerRef.current=setTimeout(()=>setTimeLeft(t=>t-1),1000);
+    return()=>clearTimeout(timerRef.current);
+  },[screen,timeLeft,showResult]);
+
+  const handleAnswer=idx=>{
+    if(showResult)return;
+    clearTimeout(timerRef.current);
+    setSelected(idx);setShowResult(true);
+    const ok=idx===questions[qIndex].a;
+    setAnswerHistory(p=>[...p,ok]);
+    let ep=0;
+    if(ok){
+      const ns=streak+1;setStreak(ns);if(ns>bestStreak)setBestStreak(ns);
+      const nm=ns>=5?3:ns>=3?2:1;setMultiplier(nm);
+      const tb=Math.max(0,timeLeft*5);ep=(100+tb)*nm;
+      setScore(s=>s+ep);setCorrect(c=>c+1);
+      const exn=10+(isHard?5:0)+(nm>1?5:0);setXpGained(p=>p+exn);
+      setPointsPopup({pts:ep,mult:nm,timeBonus:tb});
+      clearTimeout(popRef.current);popRef.current=setTimeout(()=>setPointsPopup(null),1200);
+    }else{setStreak(0);setMultiplier(1);}
+
+    setTimeout(()=>{
+      if(qIndex+1>=questions.length){
+        const fs=score+ep;if(fs>highScore)setHighScore(fs);
+        setTotalPlayed(t=>t+1);
+        addXp(xpGained+(ok?10+(isHard?5:0):0));
+        setScreen("result");
+      }else{setQIndex(i=>i+1);setSelected(null);setShowResult(false);setTimeLeft(timePerQ);}
+    },1400);
+  };
+
+  const cQ=questions[qIndex];
+  const cc=category&&CAT_COLORS[category]?CAT_COLORS[category]:theme.accent;
+  const xpN=xpFor(level);
+  const xpP=Math.min((xp/xpN)*100,100);
+  const lt=TITLES[Math.min(level-1,TITLES.length-1)];
+
+  const ThemeShop=()=>(
+    React.createElement("div",{style:{paddingTop:32,animation:"fadeUp .5s ease"}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",marginBottom:28}},
+        React.createElement("button",{onClick:()=>setShowShop(false),style:{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:14,padding:"8px 0"}},"← Back"),
+        React.createElement("h2",{style:{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}},"Themes"),
+      ),
+      React.createElement("div",{style:{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}},
+        React.createElement("div",{style:{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}},theme.emoji),
+        React.createElement("div",null,
+          React.createElement("div",{style:{fontSize:14,fontWeight:700,color:theme.textPrimary}},`Current: ${theme.name}`),
+          React.createElement("div",{style:{fontSize:12,color:theme.textSecondary}},`Level ${level} — ${lt}`),
+        ),
+      ),
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+        THEMES.map((t,i)=>{
+          const ul=t.free||level>=t.unlockLevel;const ac=t.id===currentThemeId;
+          return React.createElement("button",{key:t.id,onClick:()=>ul&&setCurrentThemeId(t.id),style:{
+            background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,
+            borderRadius:14,padding:"16px 18px",cursor:ul?"pointer":"default",display:"flex",alignItems:"center",gap:14,
+            width:"100%",textAlign:"left",fontFamily:"'Outfit',sans-serif",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
+          }},
+            React.createElement("div",{style:{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}},
+              React.createElement("div",{style:{position:"absolute",bottom:4,right:4,fontSize:16}},t.emoji),
+            ),
+            React.createElement("div",{style:{flex:1}},
+              React.createElement("div",{style:{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}},t.name,ac&&React.createElement("span",{style:{marginLeft:8,fontSize:11,color:t.accent}},"ACTIVE")),
+              React.createElement("div",{style:{fontSize:12,color:theme.textSecondary,marginTop:2}},t.free?"Free":ul?"✓ Unlocked":`🔒 Unlock at Level ${t.unlockLevel}`),
+            ),
+            !ul&&React.createElement("div",{style:{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}},`Lv.${t.unlockLevel}`),
+            ul&&!ac&&React.createElement("div",{style:{fontSize:12,fontWeight:700,color:t.accent}},"SELECT"),
+          );
+        }),
+      ),
+    )
+  );
+
+  // JSX rendering
+  return(
+    <div style={{minHeight:"100vh",background:theme.bg,color:theme.textPrimary,fontFamily:"'Outfit',sans-serif",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,background:theme.gradient,pointerEvents:"none",animation:"glowPulse 4s ease-in-out infinite"}}/>
+      <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
+
+      {showLevelUp&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{animation:"levelUp .6s ease",textAlign:"center"}}>
+          <div style={{fontSize:16,color:theme.accent,letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>LEVEL UP!</div>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{level}</div>
+          <div style={{fontSize:18,color:theme.textSecondary,marginTop:8,fontWeight:600}}>{lt}</div>
+          {level===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
+          {newUnlocks.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:24}}>{t.emoji}</span>
+            <div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME UNLOCKED</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div>
+          </div>)}
+        </div>
+      </div>}
+
+      {showShop&&screen==="menu"&&<ThemeShop/>}
+
+      {screen==="menu"&&!showShop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
+        <div style={{textAlign:"center",marginBottom:12}}>
+          <div style={{fontSize:13,letterSpacing:6,color:theme.accent,fontWeight:600,textTransform:"uppercase",marginBottom:10}}>⚡ Quiz</div>
+          <h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:52,margin:0,background:`linear-gradient(135deg,${theme.textPrimary} 30%,${theme.accent} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.1}}>BLITZ</h1>
+        </div>
+
+        <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:8,border:`1px solid ${theme.border}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{level}</div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div>
+                <div style={{fontSize:11,color:theme.textSecondary}}>Level {level}</div>
+              </div>
+            </div>
+            <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
+          </div>
+          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+            <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s ease"}}/>
+          </div>
+          {isHard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE — Harder questions, 10s timer</div>}
+        </div>
+
+        <div style={{display:"flex",gap:8,marginBottom:20}}>
+          {totalPlayed>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{highScore.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
+            <div style={{width:1,background:theme.border}}/>
+            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{totalPlayed}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
+          </div>}
+          <button onClick={()=>setShowShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:totalPlayed>0?"column":"row",alignItems:"center",justifyContent:"center",gap:totalPlayed>0?4:10,minWidth:totalPlayed>0?72:"100%",fontFamily:"'Outfit',sans-serif",transition:"all .2s"}}>
+            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:totalPlayed>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
+          </button>
+        </div>
+
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {CATEGORIES.map((cat,i)=><button key={cat} onClick={()=>startGame(cat)} style={{
+            background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",
+            cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,
+            transition:"all .25s",width:"100%",textAlign:"left",fontFamily:"'Outfit',sans-serif",
+          }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=CAT_COLORS[cat]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}
+          >
+            <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CAT_COLORS[cat]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CAT_ICONS[cat]}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{cat}</div>
+              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(cat).length} questions{isHard&&" • Hard"}</div>
+            </div>
+            <div style={{color:CAT_COLORS[cat],fontSize:13,fontWeight:600}}>PLAY →</div>
+          </button>)}
+        </div>
+
+        <button onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
+          onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
+        >🔀 MIXED BLITZ — All Categories</button>
+      </div>}
+
+      {screen==="countdown"&&<div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+        <div style={{fontSize:14,color:cc,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CAT_ICONS[category]||"🔀"} {category}{isHard&&" • HARD"}</div>
+        {countdown>0?<div key={countdown} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:cc,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${cc}44`}}>{countdown}</div>
+        :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:cc,animation:"countIn .5s ease",textShadow:`0 0 40px ${cc}44`}}>GO!</div>}
+      </div>}
+
+      {screen==="game"&&cQ&&<div style={{paddingTop:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:cc,fontWeight:700}}>{qIndex+1}</span> / {questions.length}{isHard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
+          <div style={{fontSize:15,fontWeight:800,color:theme.textPrimary}}>{score.toLocaleString()}<span style={{fontSize:11,color:theme.textSecondary,marginLeft:4}}>pts</span></div>
+        </div>
+        <div style={{display:"flex",gap:4,marginBottom:20}}>
+          {questions.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<qIndex?(answerHistory[i]?theme.accent:"#FF4444"):i===qIndex?cc+"44":theme.border,transition:"background .3s"}}/>)}
+        </div>
+        <div style={{position:"relative",marginBottom:24}}>
+          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+            <div style={{height:"100%",borderRadius:3,width:`${(timeLeft/timePerQ)*100}%`,background:timeLeft<=3?"linear-gradient(90deg,#FF4444,#FF6B6B)":`linear-gradient(90deg,${cc},${cc}88)`,transition:"width 1s linear,background .3s",...(timeLeft<=3?{animation:"timerPulse .5s ease infinite"}:{})}}/>
+          </div>
+          <div style={{position:"absolute",right:0,top:-24,fontSize:18,fontWeight:800,color:timeLeft<=3?"#FF4444":cc,fontFamily:"'Dela Gothic One',cursive",...(timeLeft<=3?{animation:"pulse .5s ease infinite"}:{})}}>{timeLeft}s</div>
+        </div>
+        {streak>0&&<div key={streak} style={{display:"flex",justifyContent:"center",marginBottom:16,animation:"streakPop .4s ease"}}>
+          <div style={{background:multiplier>=3?"linear-gradient(135deg,#FF6B6B22,#FFE66D22)":multiplier>=2?cc+"15":theme.border,border:`1px solid ${multiplier>=3?"#FFE66D44":multiplier>=2?cc+"33":theme.border}`,borderRadius:20,padding:"6px 16px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14}}>🔥</span><span style={{fontSize:13,fontWeight:700,color:multiplier>=3?"#FFE66D":cc}}>{streak} streak</span>
+            {multiplier>1&&<span style={{fontSize:12,fontWeight:800,background:multiplier>=3?"#FFE66D":cc,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{multiplier}</span>}
+          </div>
+        </div>}
+        <div style={{animation:"scaleIn .35s ease",background:theme.cardBg,borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20}}>
+          <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {cQ.opts.map((opt,i)=>{
+            const isCA=i===cQ.a,isSel=selected===i,wasW=showResult&&isSel&&!isCA,shC=showResult&&isCA;
+            const lb=["A","B","C","D"];
+            let bg=theme.cardBg,bd=theme.border,tc=theme.textPrimary,an="";
+            if(shC){bg=theme.accent+"15";bd=theme.accent+"55";tc=theme.accent;}
+            if(wasW){bg="#FF444415";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
+            return <button key={i} onClick={()=>handleAnswer(i)} disabled={showResult} style={{
+              background:bg,border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",cursor:showResult?"default":"pointer",
+              display:"flex",alignItems:"center",gap:14,fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,
+              transition:"all .2s",animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
+            }}
+              onMouseEnter={e=>{if(!showResult){e.currentTarget.style.borderColor=cc+"44";e.currentTarget.style.background=theme.cardHover;}}}
+              onMouseLeave={e=>{if(!showResult){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;}}}
+            >
+              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
+                {shC?"✓":wasW?"✗":lb[i]}
+              </div>
+              <span>{opt}</span>
+            </button>;
+          })}
+        </div>
+        {pointsPopup&&<div key={score} style={{position:"fixed",top:"36%",left:"50%",transform:"translateX(-50%)",animation:"slideDown .4s ease,fadeUp .3s ease 1s reverse forwards",textAlign:"center",pointerEvents:"none",zIndex:50}}>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:36,color:cc,textShadow:`0 0 30px ${cc}66`}}>+{pointsPopup.pts}</div>
+          {pointsPopup.mult>1&&<div style={{fontSize:14,color:"#FFE66D",fontWeight:700,marginTop:4}}>×{pointsPopup.mult} MULTIPLIER</div>}
+        </div>}
+      </div>}
+
+      {screen==="result"&&<div style={{paddingTop:48,paddingBottom:40,animation:"fadeUp .6s ease"}}>
+        {correct>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[cc,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
+        <div style={{textAlign:"center",position:"relative",zIndex:1}}>
+          <div style={{fontSize:14,color:theme.textSecondary,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Final Score</div>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${cc})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
+          {score>=highScore&&totalPlayed>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
+          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CAT_ICONS[category]||"🔀"} {category}{isHard&&" • Hard Mode"}</div>
+
+          <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:20,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{fontSize:13,color:theme.textSecondary}}>Level {level} — {lt}</span>
+              <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpGained} XP</span>
+            </div>
+            <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+              <div style={{width:`${(xp/xpFor(level))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
+            </div>
+            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(level)} XP to next level</div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+            {[{l:"Correct",v:`${correct}/${questions.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((correct/questions.length)*100)}%`,c:cc},{l:"Best Streak",v:bestStreak,c:"#FFE66D"},{l:"Top Mult",v:`×${bestStreak>=5?3:bestStreak>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
+              <div key={i} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,padding:"18px 14px",animation:`fadeUp .4s ease ${.2+i*.06}s both`}}>
+                <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Dela Gothic One',cursive"}}>{s.v}</div>
+                <div style={{fontSize:11,color:theme.textSecondary,marginTop:4,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24,animation:"fadeUp .5s ease .45s both"}}>
+            {answerHistory.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
+          </div>
+
+          <div style={{fontSize:15,color:theme.textSecondary,marginBottom:28,lineHeight:1.6,animation:"fadeUp .5s ease .5s both"}}>
+            {correct>=9?"🏆 Incredible! You absolutely crushed it!":correct>=7?"🎉 Great job! You really know your stuff!":correct>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeUp .5s ease .55s both"}}>
+            <button onClick={()=>startGame(category)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${cc},${cc}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
+              onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
+            >Play Again — {category}</button>
+            <button onClick={()=>{setScreen("menu");setShowShop(false);}} style={{width:"100%",padding:"16px 24px",background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:15,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.textSecondary;e.currentTarget.style.color=theme.textPrimary;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
+            >← Back to Categories</button>
+          </div>
+
+          <button onClick={()=>{
+            const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${level} ${lt}. Can you beat me? Play free at ${window.location.href}`;
+            if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
+            else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied to clipboard! Share it with friends 🎉")).catch(()=>{})}
+          }} style={{marginTop:12,width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.accent;e.currentTarget.style.color=theme.accent;}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
+          >📤 Share Score with Friends</button>
+        </div>
+      </div>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
+// Register Service Worker
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
