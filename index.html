@@ -1,950 +1,463 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0A0A0F">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Quiz Blitz — Fast-paced trivia with themes, sounds & animated worlds!">
-<title>Quiz Blitz</title>
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/icons/icon-512.png">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body,#root{height:100%;width:100%;overflow-x:hidden}
-body{background:#0A0A0F;font-family:'Outfit',sans-serif;color:#F5F5F5;overscroll-behavior:none}
-button{font-family:'Outfit',sans-serif;outline:none}
-::-webkit-scrollbar{width:0;display:none}
-
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
-@keyframes slideDown{from{opacity:0;transform:translateY(-30px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes streakPop{0%{transform:scale(0) rotate(-10deg);opacity:0}60%{transform:scale(1.2) rotate(3deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
-@keyframes timerPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.4)}50%{box-shadow:0 0 0 8px rgba(255,59,48,0)}}
-@keyframes confetti{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(400px) rotate(720deg);opacity:0}}
-@keyframes countIn{0%{transform:scale(3);opacity:0}50%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
-@keyframes glowPulse{0%,100%{opacity:.4}50%{opacity:.8}}
-@keyframes levelUp{0%{transform:scale(.5) rotate(-5deg);opacity:0}50%{transform:scale(1.15) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
-@keyframes xpFill{from{width:0}}
-@keyframes unlockGlow{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.3)}50%{box-shadow:0 0 40px rgba(255,215,0,.6)}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-@keyframes orbit{0%{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)}100%{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)}}
-@keyframes drift{0%{transform:translate(0,0)}25%{transform:translate(10px,-15px)}50%{transform:translate(-5px,-25px)}75%{transform:translate(-15px,-10px)}100%{transform:translate(0,0)}}
-@keyframes binaryFall{0%{transform:translateY(-20px);opacity:0}10%{opacity:.8}90%{opacity:.8}100%{transform:translateY(calc(100vh + 20px));opacity:0}}
-@keyframes sparkle{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.3)}}
-@keyframes sandDrift{0%{transform:translateX(0) translateY(0);opacity:.7}100%{transform:translateX(60px) translateY(-30px);opacity:0}}
-@keyframes waveBob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-8px) scaleY(1.08)}}
-@keyframes filmRoll{0%{transform:translateY(0)}100%{transform:translateY(-200px)}}
-@keyframes circuitPulse{0%,100%{opacity:.2}50%{opacity:.7}}
-@keyframes nebula{0%{transform:scale(1) rotate(0deg);opacity:.3}50%{transform:scale(1.3) rotate(5deg);opacity:.5}100%{transform:scale(1) rotate(0deg);opacity:.3}}
-@keyframes aurora{0%{transform:translateX(-10%) skewX(-5deg);opacity:.4}50%{transform:translateX(10%) skewX(5deg);opacity:.6}100%{transform:translateX(-10%) skewX(-5deg);opacity:.4}}
-@keyframes torchFlicker{0%,100%{opacity:.6;transform:scaleY(1)}25%{opacity:.8;transform:scaleY(1.1)}50%{opacity:.5;transform:scaleY(.95)}75%{opacity:.9;transform:scaleY(1.05)}}
-@keyframes neonPulse{0%,100%{filter:brightness(1) blur(0px);opacity:.5}50%{filter:brightness(1.5) blur(1px);opacity:.8}}
-@keyframes dataStream{0%{transform:translateY(-100%);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(100vh);opacity:0}}
-@keyframes compassSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes starTwinkle{0%,100%{opacity:.1;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}}
-@keyframes waveFlow{0%{d:path('M0,50 Q100,20 200,50 T400,50')}50%{d:path('M0,50 Q100,80 200,50 T400,50')}100%{d:path('M0,50 Q100,20 200,50 T400,50')}}
-</style>
-</head>
-<body>
-<div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel" data-type="module">
-const {useState,useEffect,useCallback,useRef,useMemo}=React;
-
-// ═══════════════════════════════════════
-// SOUND ENGINE — Web Audio API (no files!)
-// ═══════════════════════════════════════
-class SoundEngine {
-  constructor(){this.ctx=null;this.enabled=true;this.volume=0.5;}
-  init(){
-    if(this.ctx)return;
-    try{this.ctx=new(window.AudioContext||window.webkitAudioContext)();
-    if(this.ctx.state==='suspended')this.ctx.resume();}catch(e){this.enabled=false;}
-  }
-  gain(v=this.volume){const g=this.ctx.createGain();g.gain.value=v;g.connect(this.ctx.destination);return g;}
-  osc(type,freq,dur,vol=this.volume,detune=0){
-    if(!this.ctx||!this.enabled)return;
-    const o=this.ctx.createOscillator();const g=this.gain(vol);
-    o.type=type;o.frequency.value=freq;o.detune.value=detune;o.connect(g);
-    g.gain.setValueAtTime(vol,this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,this.ctx.currentTime+dur);
-    o.start();o.stop(this.ctx.currentTime+dur);
-  }
-  noise(dur,vol=0.1){
-    if(!this.ctx||!this.enabled)return;
-    const buf=this.ctx.createBuffer(1,this.ctx.sampleRate*dur,this.ctx.sampleRate);
-    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
-    const src=this.ctx.createBufferSource();src.buffer=buf;
-    const g=this.gain(vol);const f=this.ctx.createBiquadFilter();
-    f.type='bandpass';f.frequency.value=1000;f.Q.value=0.5;
-    src.connect(f);f.connect(g);src.start();src.stop(this.ctx.currentTime+dur);
-  }
-  // --- GAME SOUNDS ---
-  click(){this.osc('sine',800,0.06,0.15);this.osc('sine',1200,0.04,0.08);}
-  hover(){this.osc('sine',600,0.03,0.05);}
-  correct(){
-    const t=this.ctx?.currentTime;if(!t)return;
-    [523,659,784].forEach((f,i)=>{setTimeout(()=>this.osc('sine',f,0.15,0.25),i*80);});
-    this.osc('triangle',1047,0.3,0.1);
-  }
-  wrong(){
-    this.osc('sawtooth',200,0.3,0.15);this.osc('square',150,0.2,0.1);
-    this.noise(0.15,0.08);
-  }
-  streak(n){
-    const base=440+n*40;
-    [0,50,100].forEach((d,i)=>{setTimeout(()=>{this.osc('sine',base+i*100,0.12,0.2);this.osc('triangle',base+i*150,0.1,0.1);},d);});
-  }
-  tick(){this.osc('sine',1000,0.03,0.1);this.osc('triangle',2000,0.02,0.05);}
-  countdown(n){
-    if(n>0){this.osc('sine',880,0.1,0.2);this.osc('triangle',440,0.08,0.1);}
-    else{[523,659,784,1047].forEach((f,i)=>{setTimeout(()=>this.osc('sine',f,0.2,0.3),i*60);});}
-  }
-  levelUp(){
-    [262,330,392,523,659,784].forEach((f,i)=>{
-      setTimeout(()=>{this.osc('sine',f,0.25,0.25);this.osc('triangle',f*2,0.15,0.08);},i*100);
-    });
-    setTimeout(()=>this.osc('sine',1047,0.6,0.2),650);
-  }
-  gameOver(good){
-    if(good){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.3,0.2),i*120));}
-    else{[392,349,330,262].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.25,0.15),i*150));}
-  }
-  themeSelect(){this.osc('sine',523,0.08,0.15);setTimeout(()=>this.osc('sine',784,0.12,0.2),80);}
-  timerWarning(){this.osc('square',440,0.08,0.12);this.osc('sine',880,0.05,0.08);}
-  multiplier(){
-    [660,880,1100].forEach((f,i)=>setTimeout(()=>this.osc('triangle',f,0.1,0.15),i*50));
-  }
-  // Category ambient tones
-  ambientPing(cat){
-    const tones={Science:[523,659,784],History:[330,392,440],"Geography":[440,523,659],"Pop Culture":[587,740,880],Tech:[660,880,1100]};
-    const t=tones[cat]||tones.Science;
-    this.osc('sine',t[Math.floor(Math.random()*3)],0.4,0.03);
-  }
-}
-const sfx=new SoundEngine();
-
-// ═══════════════════════════════════════
-// ANIMATED BACKGROUNDS per CATEGORY
-// ═══════════════════════════════════════
-
-// Center vignette overlay so questions stay readable
-const CenterVignette=({bg})=><div style={{position:'absolute',inset:0,
-  background:`radial-gradient(ellipse at 50% 45%,${bg}EE 0%,${bg}CC 30%,${bg}66 60%,transparent 85%)`,
-  pointerEvents:'none',zIndex:2}}/>;
-
-const ScienceBg=({color,bg})=>{
-  const particles=useMemo(()=>Array.from({length:30},(_,i)=>({
-    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,
-    dur:3+Math.random()*6,delay:Math.random()*5,hue:Math.random()>.5?0:120,
-  })),[]);
-  const molecules=useMemo(()=>Array.from({length:5},(_,i)=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,size:60+Math.random()*80,
-    dur:10+Math.random()*10,delay:i*2,
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Nebula-like colored blobs */}
-    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'45%',height:'45%',
-      background:'radial-gradient(circle,#00E5A033 0%,#00E5A011 40%,transparent 70%)',
-      animation:'nebula 12s ease-in-out infinite',borderRadius:'50%'}}/>
-    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'50%',height:'50%',
-      background:'radial-gradient(circle,#00B4D833 0%,#00B4D811 40%,transparent 70%)',
-      animation:'nebula 15s ease-in-out 3s infinite',borderRadius:'50%'}}/>
-    <div style={{position:'absolute',top:'30%',right:'0%',width:'35%',height:'35%',
-      background:'radial-gradient(circle,#7B68EE22 0%,transparent 60%)',
-      animation:'nebula 10s ease-in-out 6s infinite',borderRadius:'50%'}}/>
-
-    {/* Glowing molecule structures */}
-    {molecules.map((m,i)=><div key={i} style={{
-      position:'absolute',left:m.x+'%',top:m.y+'%',width:m.size,height:m.size,
-      animation:`drift ${m.dur}s ease-in-out ${m.delay}s infinite`,
-    }}>
-      <svg width={m.size} height={m.size} viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="4" fill={color} opacity="0.5">
-          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        <circle cx="50" cy="50" r="20" fill="none" stroke={color} strokeWidth="0.5" opacity="0.2"/>
-        <circle cx="50" cy="50" r="35" fill="none" stroke={color} strokeWidth="0.3" opacity="0.12"/>
-        {[0,60,120,180,240,300].map((angle,j)=>{
-          const rad=angle*Math.PI/180;const r2=20;
-          const cx2=50+Math.cos(rad)*r2;const cy2=50+Math.sin(rad)*r2;
-          return <g key={j}>
-            <line x1="50" y1="50" x2={cx2} y2={cy2} stroke={color} strokeWidth="0.5" opacity="0.2"/>
-            <circle cx={cx2} cy={cy2} r="2" fill={color} opacity="0.4">
-              <animate attributeName="opacity" values="0.2;0.6;0.2" dur={1.5+j*0.3+'s'} repeatCount="indefinite"/>
-            </circle>
-          </g>;
-        })}
-        <circle cx="30" cy="30" r="2" fill="#00E5A0" opacity="0.6" style={{['--r']:'35px'}}>
-          <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur={4+i+'s'} repeatCount="indefinite"/>
-        </circle>
-      </svg>
-    </div>)}
-
-    {/* DNA Double Helix - left side */}
-    <svg width="80" height="500" style={{position:'absolute',left:'2%',top:'5%',opacity:0.25}}>
-      {Array.from({length:25},(_,i)=>{
-        const y=i*20;const phase=i*0.7;
-        const x1=20+Math.sin(phase)*18;const x2=60-Math.sin(phase)*18;
-        const colors=['#00E5A0','#00B4D8','#A78BFA'];
-        return <g key={i}>
-          <circle cx={x1} cy={y} r="3" fill={colors[i%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          <circle cx={x2} cy={y} r="3" fill={colors[(i+1)%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2.5+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke="white" strokeWidth="0.6" opacity="0.15"/>}
-        </g>;
-      })}
-    </svg>
-
-    {/* Floating particles */}
-    {particles.map((p,i)=><div key={i} style={{
-      position:'absolute',left:p.x+'%',top:p.y+'%',width:p.size,height:p.size,
-      borderRadius:'50%',
-      background:p.hue===0?color:'#00B4D8',
-      boxShadow:`0 0 ${p.size*2}px ${p.hue===0?color:'#00B4D8'}44`,
-      animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
-    }}/>)}
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const HistoryBg=({color,bg})=>{
-  const embers=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,size:1.5+Math.random()*3,
-    dur:3+Math.random()*5,delay:Math.random()*6,
-  })),[]);
-  const stars=useMemo(()=>Array.from({length:20},()=>({
-    x:Math.random()*100,y:Math.random()*40,size:1+Math.random()*2,dur:2+Math.random()*4,delay:Math.random()*3,
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Warm sunset sky gradient at top */}
-    <div style={{position:'absolute',top:0,left:0,right:0,height:'50%',
-      background:'linear-gradient(180deg,#FF6B6B15 0%,#FFB34718 20%,#FF8C0010 40%,transparent 100%)'}}/>
-
-    {/* Stars twinkling */}
-    {stars.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:'50%',background:'#FFE4B5',
-      boxShadow:`0 0 ${s.size*3}px #FFE4B566`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
-    }}/>)}
-
-    {/* Pyramids - vibrant golden */}
-    <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMax meet"
-      style={{position:'absolute',bottom:0}}>
-      {/* Sky glow behind pyramids */}
-      <defs>
-        <linearGradient id="pyrGlow" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FF6B6B" stopOpacity="0"/>
-          <stop offset="70%" stopColor="#FF8C00" stopOpacity="0.08"/>
-          <stop offset="100%" stopColor="#FFB347" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFD700" stopOpacity="0.35"/>
-          <stop offset="100%" stopColor="#FF8C00" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace2" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFB347" stopOpacity="0.2"/>
-          <stop offset="100%" stopColor="#8B4513" stopOpacity="0.15"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="500" height="350" fill="url(#pyrGlow)"/>
-      {/* Main pyramid */}
-      <polygon points="200,100 310,300 90,300" fill="url(#pyrFace1)" stroke="#FFD70033" strokeWidth="0.5"/>
-      <polygon points="200,100 310,300 200,300" fill="url(#pyrFace2)"/>
-      {/* Second pyramid */}
-      <polygon points="350,160 440,300 260,300" fill="url(#pyrFace1)" opacity="0.7" stroke="#FFD70022" strokeWidth="0.5"/>
-      <polygon points="350,160 440,300 350,300" fill="url(#pyrFace2)" opacity="0.7"/>
-      {/* Small pyramid */}
-      <polygon points="80,220 130,300 30,300" fill="url(#pyrFace1)" opacity="0.5"/>
-      {/* Ground */}
-      <rect x="0" y="298" width="500" height="52" fill="#D2691E" opacity="0.08"/>
-      <line x1="0" y1="300" x2="500" y2="300" stroke="#FFD700" strokeWidth="0.5" opacity="0.2"/>
-    </svg>
-
-    {/* Torch flames on sides */}
-    <div style={{position:'absolute',left:'6%',bottom:'28%'}}>
-      <div style={{width:8,height:20,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.5s ease infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-    <div style={{position:'absolute',right:'6%',bottom:'25%'}}>
-      <div style={{width:8,height:22,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.8s ease 0.5s infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-
-    {/* Rising embers */}
-    {embers.map((e,i)=><div key={i} style={{
-      position:'absolute',left:e.x+'%',bottom:'-5%',width:e.size,height:e.size,
-      borderRadius:'50%',
-      background:i%3===0?'#FF6B6B':i%3===1?'#FFD700':'#FF8C00',
-      boxShadow:`0 0 ${e.size*3}px ${i%3===0?'#FF6B6B':'#FFD700'}44`,
-      animation:`sandDrift ${e.dur}s ease ${e.delay}s infinite`,
-    }}/>)}
-
-    {/* Hieroglyphs - more visible */}
-    <div style={{position:'absolute',left:'3%',top:'12%',fontSize:32,opacity:0.08,color:'#FFD700',
-      animation:'float 8s ease-in-out infinite'}}>𓂀</div>
-    <div style={{position:'absolute',right:'5%',top:'20%',fontSize:26,opacity:0.07,color:'#FFB347',
-      animation:'float 10s ease-in-out 2s infinite'}}>𓃭</div>
-    <div style={{position:'absolute',left:'15%',top:'5%',fontSize:22,opacity:0.06,color:'#FF8C00',
-      animation:'float 12s ease-in-out 4s infinite'}}>𓅃</div>
-    <div style={{position:'absolute',right:'15%',top:'8%',fontSize:20,opacity:0.05,color:'#FFD700',
-      animation:'float 9s ease-in-out 1s infinite'}}>𓁹</div>
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const GeographyBg=({color,bg})=>{
-  const pins=useMemo(()=>Array.from({length:10},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,dur:3+Math.random()*4,delay:Math.random()*4,
-  })),[]);
-  const waves=useMemo(()=>Array.from({length:4},(_,i)=>({
-    y:75+i*6,dur:3+i*0.8,delay:i*0.5,opacity:0.08-i*0.015,
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Aurora borealis at top */}
-    <div style={{position:'absolute',top:0,left:0,right:0,height:'35%',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:'-20%',left:'-10%',width:'60%',height:'150%',
-        background:'linear-gradient(135deg,#4ECDC433,#00B4D822,transparent)',
-        borderRadius:'50%',animation:'aurora 8s ease-in-out infinite'}}/>
-      <div style={{position:'absolute',top:'-10%',right:'-15%',width:'55%',height:'130%',
-        background:'linear-gradient(225deg,#34D39933,#4ECDC422,transparent)',
-        borderRadius:'50%',animation:'aurora 10s ease-in-out 2s infinite'}}/>
-      <div style={{position:'absolute',top:'0%',left:'20%',width:'40%',height:'100%',
-        background:'linear-gradient(180deg,#00E5A022,transparent)',
-        borderRadius:'50%',animation:'aurora 12s ease-in-out 4s infinite'}}/>
-    </div>
-
-    {/* Globe wireframe - more vivid */}
-    <svg width="350" height="350" viewBox="0 0 200 200"
-      style={{position:'absolute',right:'-8%',top:'8%',opacity:0.12}}>
-      <defs>
-        <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4ECDC4"/>
-          <stop offset="100%" stopColor="#00B4D8"/>
-        </linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="80" fill="none" stroke="url(#globeGrad)" strokeWidth="1.2"/>
-      <ellipse cx="100" cy="100" rx="80" ry="30" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
-      <ellipse cx="100" cy="100" rx="80" ry="55" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
-      <ellipse cx="100" cy="100" rx="30" ry="80" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
-      <ellipse cx="100" cy="100" rx="55" ry="80" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
-      <line x1="20" y1="100" x2="180" y2="100" stroke={color} strokeWidth="0.4" opacity="0.5"/>
-      <line x1="100" y1="20" x2="100" y2="180" stroke={color} strokeWidth="0.4" opacity="0.5"/>
-      <animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="50s" repeatCount="indefinite"/>
-    </svg>
-
-    {/* Map pins - colored and glowing */}
-    {pins.map((p,i)=><div key={i} style={{
-      position:'absolute',left:p.x+'%',top:p.y+'%',animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
-    }}>
-      <svg width="16" height="22" viewBox="0 0 12 16">
-        <path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z"
-          fill={i%3===0?'#4ECDC4':i%3===1?'#00B4D8':'#34D399'} opacity="0.35"/>
-        <circle cx="6" cy="6" r="2" fill="white" opacity="0.5"/>
-      </svg>
-    </div>)}
-
-    {/* Ocean waves at bottom */}
-    <svg width="100%" height="120" style={{position:'absolute',bottom:0}}>
-      {waves.map((w,i)=><path key={i}
-        d={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-        fill="none" stroke={i%2===0?'#4ECDC4':'#00B4D8'} strokeWidth={1.5-i*0.2} opacity={w.opacity*3}>
-        <animate attributeName="d"
-          values={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${45+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-          dur={w.dur+'s'} repeatCount="indefinite"/>
-      </path>)}
-    </svg>
-
-    {/* Compass rose - subtle, bottom left */}
-    <svg width="60" height="60" viewBox="0 0 60 60" style={{position:'absolute',left:'5%',bottom:'18%',opacity:0.1}}>
-      <circle cx="30" cy="30" r="25" fill="none" stroke={color} strokeWidth="0.8"/>
-      <polygon points="30,8 33,26 30,22 27,26" fill={color} opacity="0.8"/>
-      <polygon points="30,52 33,34 30,38 27,34" fill={color} opacity="0.4"/>
-      <polygon points="8,30 26,27 22,30 26,33" fill={color} opacity="0.4"/>
-      <polygon points="52,30 34,27 38,30 34,33" fill={color} opacity="0.6"/>
-      <animateTransform attributeName="transform" type="rotate" values="0 30 30;360 30 30" dur="30s" repeatCount="indefinite"/>
-    </svg>
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const PopCultureBg=({color,bg})=>{
-  const sparkles=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,
-    dur:1.5+Math.random()*3,delay:Math.random()*4,
-    color:['#FFE66D','#FF77A9','#A78BFA','#00E5FF','#FF6B6B'][Math.floor(Math.random()*5)],
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Colorful spotlight beams */}
-    <div style={{position:'absolute',left:'10%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#FF77A920,#FF77A910,transparent 70%)',
-      transform:'rotate(-20deg)',transformOrigin:'bottom center',animation:'neonPulse 4s ease infinite'}}/>
-    <div style={{position:'absolute',right:'15%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#A78BFA20,#A78BFA10,transparent 70%)',
-      transform:'rotate(15deg)',transformOrigin:'bottom center',animation:'neonPulse 5s ease 1s infinite'}}/>
-    <div style={{position:'absolute',left:'45%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#FFE66D18,#FFE66D08,transparent 60%)',
-      transform:'rotate(-5deg)',transformOrigin:'bottom center',animation:'neonPulse 3.5s ease 2s infinite'}}/>
-    <div style={{position:'absolute',right:'35%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#00E5FF15,transparent 50%)',
-      transform:'rotate(8deg)',transformOrigin:'bottom center',animation:'neonPulse 4.5s ease 0.5s infinite'}}/>
-
-    {/* Colored glow orbs */}
-    <div style={{position:'absolute',top:'5%',left:'5%',width:'30%',height:'25%',
-      background:'radial-gradient(circle,#FF77A918 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 8s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',top:'15%',right:'5%',width:'25%',height:'25%',
-      background:'radial-gradient(circle,#A78BFA18 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 10s ease-in-out 3s infinite'}}/>
-    <div style={{position:'absolute',bottom:'15%',left:'10%',width:'25%',height:'20%',
-      background:'radial-gradient(circle,#FFE66D12 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 9s ease-in-out 5s infinite'}}/>
-
-    {/* Sparkle stars - multicolored */}
-    {sparkles.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:i%3===0?'50%':'2px',transform:i%3===2?'rotate(45deg)':'none',
-      background:s.color,boxShadow:`0 0 ${s.size*2}px ${s.color}66`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
-    }}/>)}
-
-    {/* Film strip - left side, more vivid */}
-    <div style={{position:'absolute',left:'2%',top:'3%',opacity:0.08}}>
-      <svg width="35" height="260" viewBox="0 0 30 200">
-        {Array.from({length:10},(_,i)=><g key={i}>
-          <rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke="#FFE66D" strokeWidth="1"/>
-          <rect x="2" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="2" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-        </g>)}
-        <animateTransform attributeName="transform" type="translate" values="0 0;0 -40;0 0" dur="6s" repeatCount="indefinite"/>
-      </svg>
-    </div>
-
-    {/* Music notes */}
-    <div style={{position:'absolute',right:'5%',top:'10%',fontSize:34,opacity:0.08,color:'#FF77A9',
-      animation:'float 5s ease-in-out infinite'}}>♪</div>
-    <div style={{position:'absolute',right:'18%',top:'35%',fontSize:24,opacity:0.06,color:'#A78BFA',
-      animation:'float 7s ease-in-out 1.5s infinite'}}>♫</div>
-    <div style={{position:'absolute',left:'8%',bottom:'20%',fontSize:28,opacity:0.07,color:'#FFE66D',
-      animation:'float 6s ease-in-out 3s infinite'}}>♬</div>
-
-    {/* Star burst - bottom right */}
-    <svg width="80" height="80" viewBox="0 0 80 80" style={{position:'absolute',right:'8%',bottom:'12%',opacity:0.06}}>
-      {Array.from({length:8},(_,i)=>{
-        const angle=(i/8)*Math.PI*2;
-        return <line key={i} x1="40" y1="40" x2={40+Math.cos(angle)*35} y2={40+Math.sin(angle)*35}
-          stroke="#FFE66D" strokeWidth="1" opacity="0.8">
-          <animate attributeName="opacity" values="0.3;1;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </line>;
-      })}
-    </svg>
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const TechBg=({color,bg})=>{
-  const binaryStreams=useMemo(()=>Array.from({length:15},(_,i)=>({
-    x:3+Math.random()*94,chars:Array.from({length:8},()=>Math.random()>.5?'1':'0').join(''),
-    dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*4,
-    color:['#7B68EE','#00E5FF','#E040FB','#00E5A0'][Math.floor(Math.random()*4)],
-  })),[]);
-  const nodes=useMemo(()=>Array.from({length:8},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Cyberpunk gradient glows */}
-    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'40%',height:'40%',
-      background:'radial-gradient(circle,#7B68EE22 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 10s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'45%',height:'45%',
-      background:'radial-gradient(circle,#00E5FF1A 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 12s ease-in-out 4s infinite'}}/>
-    <div style={{position:'absolute',top:'30%',left:'60%',width:'30%',height:'30%',
-      background:'radial-gradient(circle,#E040FB12 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 8s ease-in-out 2s infinite'}}/>
-
-    {/* Circuit board lines - glowing */}
-    <svg width="100%" height="100%" style={{position:'absolute'}}>
-      {nodes.map((n,i)=>{
-        const next=nodes[(i+1)%nodes.length];
-        const midX=(parseFloat(n.x)+parseFloat(next.x))/2;
-        const colors=['#7B68EE','#00E5FF','#E040FB','#00E5A0'];
-        return <g key={i}>
-          <path d={`M${n.x}% ${n.y}% L${midX}% ${n.y}% L${midX}% ${next.y}% L${next.x}% ${next.y}%`}
-            fill="none" stroke={colors[i%4]} strokeWidth="0.8" opacity="0.12">
-            <animate attributeName="opacity" values="0.05;0.2;0.05" dur={3+i*0.5+'s'} repeatCount="indefinite"/>
-          </path>
-          <circle cx={n.x+'%'} cy={n.y+'%'} r="3" fill={colors[i%4]} opacity="0.3">
-            <animate attributeName="r" values="2;5;2" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.15;0.5;0.15" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-          </circle>
-        </g>;
-      })}
-    </svg>
-
-    {/* Binary rain - colored */}
-    {binaryStreams.map((b,i)=><div key={i} style={{
-      position:'absolute',left:b.x+'%',top:'-5%',
-      fontSize:b.size,color:b.color,fontFamily:'monospace',fontWeight:700,
-      opacity:0.15,letterSpacing:2,writingMode:'vertical-lr',
-      animation:`dataStream ${b.dur}s linear ${b.delay}s infinite`,
-      textShadow:`0 0 8px ${b.color}44`,
-    }}>{b.chars}</div>)}
-
-    {/* Hex grid pattern - bottom */}
-    <svg width="200" height="100" viewBox="0 0 200 100"
-      style={{position:'absolute',right:'3%',bottom:'5%',opacity:0.05}}>
-      {Array.from({length:12},(_,i)=>{
-        const row=Math.floor(i/4);const col=i%4;
-        const cx=25+col*50+(row%2?25:0);const cy=25+row*30;
-        return <polygon key={i} points={[0,1,2,3,4,5].map(j=>{
-          const a=(j/6)*Math.PI*2-Math.PI/6;
-          return `${cx+15*Math.cos(a)},${cy+15*Math.sin(a)}`;
-        }).join(' ')} fill="none" stroke={color} strokeWidth="0.5">
-          <animate attributeName="opacity" values="0.3;0.8;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </polygon>;
-      })}
-    </svg>
-
-    {/* Terminal prompt */}
-    <div style={{position:'absolute',right:'4%',bottom:'12%',fontFamily:'monospace',fontSize:20,
-      opacity:0.06,color:'#00E5FF',animation:'pulse 2.5s ease infinite',
-      textShadow:'0 0 10px #00E5FF44'}}>&gt;_</div>
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const CategoryBg=({category,color,bg})=>{
-  switch(category){
-    case 'Science':return <ScienceBg color={color} bg={bg}/>;
-    case 'History':return <HistoryBg color={color} bg={bg}/>;
-    case 'Geography':return <GeographyBg color={color} bg={bg}/>;
-    case 'Pop Culture':return <PopCultureBg color={color} bg={bg}/>;
-    case 'Tech':return <TechBg color={color} bg={bg}/>;
-    default:return <ScienceBg color={color} bg={bg}/>;
-  }
-};
-
-// ═══════════════════════════════════════
-// GAME DATA
-// ═══════════════════════════════════════
-const THEMES=[
-{id:"midnight",name:"Midnight",free:true,unlockLevel:0,bg:"#0A0A0F",cardBg:"#111118",cardHover:"#15151F",border:"#1A1A2E",accent:"#00E5A0",accentAlt:"#00B4D8",textPrimary:"#F5F5F5",textSecondary:"#555",gradient:"radial-gradient(ellipse at 20% 50%,#00E5A008 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#00B4D806 0%,transparent 50%)",preview:"linear-gradient(135deg,#0A0A0F,#111118,#0A0A0F)",emoji:"🌙"},
-{id:"ember",name:"Ember",free:true,unlockLevel:0,bg:"#0F0A08",cardBg:"#1A1210",cardHover:"#221815",border:"#2E1A14",accent:"#FF6B35",accentAlt:"#FFB347",textPrimary:"#FFF0E6",textSecondary:"#665544",gradient:"radial-gradient(ellipse at 30% 20%,#FF6B3508 0%,transparent 50%),radial-gradient(ellipse at 70% 90%,#FFB34706 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0A08,#1A1210,#0F0A08)",emoji:"🔥"},
-{id:"ocean",name:"Deep Ocean",free:false,unlockLevel:5,bg:"#060D14",cardBg:"#0C1A28",cardHover:"#102236",border:"#153050",accent:"#00D4FF",accentAlt:"#0088CC",textPrimary:"#E0F4FF",textSecondary:"#446688",gradient:"radial-gradient(ellipse at 50% 100%,#00D4FF06 0%,transparent 50%),radial-gradient(ellipse at 20% 20%,#00336608 0%,transparent 50%)",preview:"linear-gradient(135deg,#060D14,#0C1A28,#060D14)",emoji:"🌊"},
-{id:"aurora",name:"Aurora",free:false,unlockLevel:10,bg:"#080B16",cardBg:"#101428",cardHover:"#161C36",border:"#1E2850",accent:"#A78BFA",accentAlt:"#34D399",textPrimary:"#EDE9FE",textSecondary:"#6B5FA0",gradient:"radial-gradient(ellipse at 20% 30%,#A78BFA08 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#34D39906 0%,transparent 50%)",preview:"linear-gradient(135deg,#080B16,#1E1048,#080B16)",emoji:"🌌"},
-{id:"sakura",name:"Sakura",free:false,unlockLevel:15,bg:"#140A10",cardBg:"#1F1018",cardHover:"#2A1622",border:"#3D1C2E",accent:"#FF77A9",accentAlt:"#FFB7D5",textPrimary:"#FFE8F0",textSecondary:"#885566",gradient:"radial-gradient(ellipse at 60% 20%,#FF77A908 0%,transparent 50%),radial-gradient(ellipse at 30% 80%,#FFB7D506 0%,transparent 50%)",preview:"linear-gradient(135deg,#140A10,#2A1222,#140A10)",emoji:"🌸"},
-{id:"golden",name:"Golden Age",free:false,unlockLevel:20,bg:"#0F0D06",cardBg:"#1C1808",cardHover:"#26220E",border:"#3D3410",accent:"#FFD700",accentAlt:"#FFA500",textPrimary:"#FFF8DC",textSecondary:"#887744",gradient:"radial-gradient(ellipse at 40% 30%,#FFD70008 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#FFA50006 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0D06,#1C1808,#0F0D06)",emoji:"👑"},
-{id:"neon",name:"Neon Nights",free:false,unlockLevel:25,bg:"#05000A",cardBg:"#0E0518",cardHover:"#150822",border:"#2A1050",accent:"#E040FB",accentAlt:"#00E5FF",textPrimary:"#F3E5F5",textSecondary:"#7744AA",gradient:"radial-gradient(ellipse at 30% 50%,#E040FB06 0%,transparent 50%),radial-gradient(ellipse at 80% 30%,#00E5FF05 0%,transparent 50%)",preview:"linear-gradient(135deg,#05000A,#1A0530,#05000A)",emoji:"💜"},
-{id:"matrix",name:"Matrix",free:false,unlockLevel:30,bg:"#000A00",cardBg:"#001A00",cardHover:"#002400",border:"#003D00",accent:"#00FF41",accentAlt:"#00CC33",textPrimary:"#CCFFCC",textSecondary:"#337733",gradient:"radial-gradient(ellipse at 50% 50%,#00FF4106 0%,transparent 50%)",preview:"linear-gradient(135deg,#000A00,#001A00,#000A00)",emoji:"🟢"},
-];
-
-const QE={
-Science:[{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},{q:"How many bones in the adult human body?",opts:["186","206","226","196"],a:1},{q:"What planet is the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},{q:"What gas do plants absorb?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},{q:"Element with atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},{q:"Hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},{q:"What organ filters blood?",opts:["Liver","Heart","Kidney","Lungs"],a:2},{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},{q:"Largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2}],
-History:[{q:"Year World War II ended?",opts:["1943","1944","1945","1946"],a:2},{q:"First person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},{q:"Who built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},{q:"Year Bangladesh gained independence?",opts:["1947","1965","1971","1975"],a:2},{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},{q:"Empire ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},{q:"Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},{q:"Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},{q:"First US President?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},{q:"City buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2}],
-Geography:[{q:"Largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},{q:"Capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},{q:"Longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},{q:"Smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},{q:"Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},{q:"Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},{q:"Largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},{q:"How many continents?",opts:["5","6","7","8"],a:2},{q:"Tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},{q:"Country with most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2}],
-"Pop Culture":[{q:"Highest-grossing film ever (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},{q:"Who wrote Harry Potter?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},{q:"First iPhone released?",opts:["2005","2006","2007","2008"],a:2},{q:"Band behind 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},{q:"Year YouTube was founded?",opts:["2003","2005","2007","2009"],a:1},{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},{q:"Nintendo's console?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},{q:"Mario's brother?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},{q:"Movie with character Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},{q:"Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1}],
-Tech:[{q:"What does HTTP stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},{q:"Father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},{q:"Most used web dev language?",opts:["Python","Java","JavaScript","C++"],a:2},{q:"What does AI stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},{q:"Who developed Android?",opts:["Apple","Microsoft","Google","Samsung"],a:2},{q:"Bits in a byte?",opts:["4","6","8","16"],a:2},{q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},{q:"Who makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},{q:"World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},{q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0}],
-};
-const QH={
-Science:[{q:"Heisenberg Uncertainty Principle is about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},{q:"Most abundant atmospheric gas?",opts:["Oxygen","Nitrogen","CO₂","Argon"],a:1},{q:"Absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},{q:"Particle with no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},{q:"Carbon-14 half-life?",opts:["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],a:1},{q:"Vitamin from sunlight?",opts:["Vit A","Vit B12","Vit C","Vit D"],a:3},{q:"Star collapse → black hole cause?",opts:["Fission","Gravitational collapse","Fusion","Thermal expansion"],a:1},{q:"Chandrasekhar limit is?",opts:["Max white dwarf mass","Speed of light","Planck length","Bohr radius"],a:0},{q:"pH of pure water?",opts:["5","7","8","6"],a:1},{q:"Beta decay emits?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1}],
-History:[{q:"Treaty of Westphalia ended?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},{q:"Last Mughal Emperor?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},{q:"D-Day code name?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},{q:"Rosetta Stone deciphered?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},{q:"Who led Salt March 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},{q:"Magna Carta year?",opts:["1066","1215","1315","1492"],a:1},{q:"Ottoman Empire fell after?",opts:["Crimean War","Balkan Wars","WWI","WWII"],a:2},{q:"Who wrote Art of War?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},{q:"Eastern Roman Empire = ?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},{q:"Silk Road → which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2}],
-Geography:[{q:"Deepest ocean point?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},{q:"Most time zones country?",opts:["Russia","USA","France","China"],a:2},{q:"Driest continent?",opts:["Africa","Australia","Antarctica","Asia"],a:2},{q:"Lake Baikal country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},{q:"Strait: Europe↔Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},{q:"Never colonized African country?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},{q:"Country on two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3}],
-"Pop Culture":[{q:"First Best Picture Oscar?",opts:["Sunrise","Wings","Jazz Singer","Metropolis"],a:1},{q:"Created Sherlock Holmes?",opts:["Christie","Conan Doyle","Poe","Dickens"],a:1},{q:"First game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},{q:"First animated feature film?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},{q:"Directed Parasite (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},{q:"Best-selling game ever?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},{q:"Netflix first original?",opts:["Stranger Things","House of Cards","OITNB","Narcos"],a:1},{q:"Highest MAL rated anime?",opts:["AoT","FMA:B","Steins;Gate","Gintama"],a:1},{q:"Spotify launched?",opts:["2006","2008","2010","2012"],a:1},{q:"Interstellar composer?",opts:["J. Williams","H. Zimmer","H. Shore","D. Elfman"],a:1}],
-Tech:[{q:"Invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},{q:"Binary search complexity?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},{q:"Haskell's paradigm?",opts:["OOP","Procedural","Functional","Logic"],a:2},{q:"First microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},{q:"OSI routing layer?",opts:["Transport","Network","Data Link","Session"],a:1},{q:"Bitcoin consensus?",opts:["Proof of Stake","Proof of Work","Delegated","Authority"],a:1},{q:"CUDA stands for?",opts:["Compute Unified Device Arch","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],a:0},{q:"LIDAR stands for?",opts:["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],a:0},{q:"Linux kernel language?",opts:["C++","C","Assembly","Rust"],a:1},{q:"API stands for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0}],
-};
-
-const CATS=Object.keys(QE);
-const CC={Science:"#00E5A0",History:"#FF6B6B",Geography:"#4ECDC4","Pop Culture":"#FFE66D",Tech:"#7B68EE"};
-const CI={Science:"🧬",History:"🏛️",Geography:"🌍","Pop Culture":"🎬",Tech:"💻"};
-const QPR=10;
-const xpFor=l=>100+(l-1)*60;
-const TITLES=["Newbie","Rookie","Learner","Student","Scholar","Thinker","Sharp Mind","Brainiac","Expert","Genius","Mastermind","Prodigy","Sage","Oracle","Luminary","Visionary","Legend","Mythic","Titan","Immortal","Challenger","Champion","Conqueror","Ascendant","Paragon","Transcendent","Architect","Overlord","Cosmic Brain","GOAT","∞"];
-const LS="quiz_blitz_save";
-const load=()=>{try{return JSON.parse(localStorage.getItem(LS))||null}catch{return null}};
-const save=d=>{try{localStorage.setItem(LS,JSON.stringify(d))}catch{}};
-
-function App(){
-  const sv=load();
-  const[screen,setScreen]=useState("menu");
-  const[cat,setCat]=useState(null);
-  const[qs,setQs]=useState([]);
-  const[qi,setQi]=useState(0);
-  const[score,setScore]=useState(0);
-  const[stk,setStk]=useState(0);
-  const[bstk,setBstk]=useState(0);
-  const[tl,setTl]=useState(12);
-  const[sel,setSel]=useState(null);
-  const[sr,setSr]=useState(false);
-  const[cor,setCor]=useState(0);
-  const[cd,setCd]=useState(3);
-  const[hs,setHs]=useState(sv?.hs||0);
-  const[tp,setTp]=useState(sv?.tp||0);
-  const[mult,setMult]=useState(1);
-  const[pp,setPp]=useState(null);
-  const[ah,setAh]=useState([]);
-  const[tid,setTid]=useState(sv?.tid||"midnight");
-  const[lvl,setLvl]=useState(sv?.lvl||1);
-  const[xp,setXp]=useState(sv?.xp||0);
-  const[xpg,setXpg]=useState(0);
-  const[slu,setSlu]=useState(false);
-  const[nu,setNu]=useState([]);
-  const[shop,setShop]=useState(false);
-  const[soundOn,setSoundOn]=useState(sv?.soundOn!==false);
-  const tr=useRef(null);const pr=useRef(null);const ambRef=useRef(null);
-
-  const theme=THEMES.find(t=>t.id===tid)||THEMES[0];
-  const hard=lvl>=20;const tpq=hard?10:12;
-
-  useEffect(()=>{save({hs,tp,tid,lvl,xp,soundOn})},[hs,tp,tid,lvl,xp,soundOn]);
-  useEffect(()=>{document.body.style.background=theme.bg},[theme]);
-  useEffect(()=>{sfx.enabled=soundOn},[soundOn]);
-
-  // Ambient ping during game
-  useEffect(()=>{
-    if(screen==='game'&&cat&&cat!=='Mixed'){
-      ambRef.current=setInterval(()=>sfx.ambientPing(cat),4000+Math.random()*3000);
-      return()=>clearInterval(ambRef.current);
-    }else{clearInterval(ambRef.current);}
-  },[screen,cat]);
-
-  const getPool=useCallback(c=>{
-    if(hard)return[...(QH[c]||[]),...(QE[c]||[])];return QE[c]||[];
-  },[hard]);
-
-  const addXp=useCallback(amt=>{
-    setXp(prev=>{
-      let nx=prev+amt,nl=lvl,ul=[];
-      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);ul=[...ul,...u];}
-      if(nl>lvl){setLvl(nl);setSlu(true);sfx.levelUp();if(ul.length)setNu(ul);setTimeout(()=>{setSlu(false);setNu([])},3500);}
-      return nx;
-    });
-  },[lvl]);
-
-  const startGame=useCallback(c=>{
-    sfx.init();sfx.click();
-    const isM=c==="Mixed";
-    const pool=isM?CATS.flatMap(x=>getPool(x)).sort(()=>Math.random()-.5).slice(0,QPR):getPool(c).sort(()=>Math.random()-.5).slice(0,QPR);
-    setCat(c);setQs(pool);setQi(0);setScore(0);setStk(0);setBstk(0);
-    setCor(0);setSel(null);setSr(false);setMult(1);setAh([]);
-    setCd(3);setScreen("countdown");setXpg(0);
-  },[getPool]);
-
-  useEffect(()=>{
-    if(screen!=="countdown")return;
-    if(cd<=0){sfx.countdown(0);setScreen("game");setTl(tpq);return;}
-    sfx.countdown(cd);
-    const t=setTimeout(()=>setCd(c=>c-1),700);
-    return()=>clearTimeout(t);
-  },[screen,cd,tpq]);
-
-  useEffect(()=>{
-    if(screen!=="game"||sr)return;
-    if(tl<=0){handleAns(-1);return;}
-    if(tl<=3)sfx.timerWarning();
-    tr.current=setTimeout(()=>setTl(t=>t-1),1000);
-    return()=>clearTimeout(tr.current);
-  },[screen,tl,sr]);
-
-  const handleAns=idx=>{
-    if(sr)return;
-    clearTimeout(tr.current);
-    setSel(idx);setSr(true);
-    const ok=idx===qs[qi].a;
-    setAh(p=>[...p,ok]);
-    let ep=0;
-    if(ok){
-      sfx.correct();
-      const ns=stk+1;setStk(ns);if(ns>bstk)setBstk(ns);
-      const nm=ns>=5?3:ns>=3?2:1;setMult(nm);
-      if(nm>1&&(ns===3||ns===5))sfx.multiplier();
-      if(ns>1)sfx.streak(ns);
-      const tb=Math.max(0,tl*5);ep=(100+tb)*nm;
-      setScore(s=>s+ep);setCor(c=>c+1);
-      const exn=10+(hard?5:0)+(nm>1?5:0);setXpg(p=>p+exn);
-      setPp({pts:ep,mult:nm});
-      clearTimeout(pr.current);pr.current=setTimeout(()=>setPp(null),1200);
-    }else{sfx.wrong();setStk(0);setMult(1);}
-
-    setTimeout(()=>{
-      if(qi+1>=qs.length){
-        const fs=score+ep;if(fs>hs)setHs(fs);
-        setTp(t=>t+1);
-        addXp(xpg+(ok?10+(hard?5:0):0));
-        sfx.gameOver(cor+(ok?1:0)>=7);
-        setScreen("result");
-      }else{setQi(i=>i+1);setSel(null);setSr(false);setTl(tpq);}
-    },1400);
-  };
-
-  const cQ=qs[qi];
-  const catCol=cat&&CC[cat]?CC[cat]:theme.accent;
-  const xpN=xpFor(lvl);const xpP=Math.min((xp/xpN)*100,100);
-  const lt=TITLES[Math.min(lvl-1,TITLES.length-1)];
-
-  const Btn=({children,onClick,style:s,...p})=><button onClick={e=>{sfx.init();sfx.click();onClick?.(e)}} {...p}
-    style={{...s,fontFamily:"'Outfit',sans-serif"}}>{children}</button>;
-
-  const SoundToggle=()=><button onClick={()=>{sfx.init();setSoundOn(p=>!p);sfx.click()}} style={{
-    position:'fixed',top:16,right:16,zIndex:90,background:theme.cardBg,border:`1px solid ${theme.border}`,
-    borderRadius:10,width:40,height:40,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
-    fontSize:18,transition:'all .2s',fontFamily:"'Outfit',sans-serif",
-  }}>{soundOn?'🔊':'🔇'}</button>;
-
-  const ThemeShop=()=>(
-    <div style={{paddingTop:32,animation:"fadeUp .5s ease"}}>
-      <div style={{display:"flex",alignItems:"center",marginBottom:28}}>
-        <Btn onClick={()=>setShop(false)} style={{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontSize:14,padding:"8px 0"}}>← Back</Btn>
-        <h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}}>Themes</h2>
-      </div>
-      <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}}>{theme.emoji}</div>
-        <div><div style={{fontSize:14,fontWeight:700,color:theme.textPrimary}}>Current: {theme.name}</div>
-        <div style={{fontSize:12,color:theme.textSecondary}}>Level {lvl} — {lt}</div></div>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {THEMES.map((t,i)=>{
-          const ul=t.free||lvl>=t.unlockLevel;const ac=t.id===tid;
-          return <Btn key={t.id} onClick={()=>{if(ul){setTid(t.id);sfx.themeSelect();}}} style={{
-            background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,
-            borderRadius:14,padding:"16px 18px",cursor:ul?"pointer":"default",display:"flex",alignItems:"center",gap:14,
-            width:"100%",textAlign:"left",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
-          }}>
-            <div style={{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",bottom:4,right:4,fontSize:16}}>{t.emoji}</div></div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}}>{t.name}{ac&&<span style={{marginLeft:8,fontSize:11,color:t.accent}}>ACTIVE</span>}</div>
-              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{t.free?"Free":ul?"✓ Unlocked":`🔒 Level ${t.unlockLevel}`}</div>
-            </div>
-            {!ul&&<div style={{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}}>Lv.{t.unlockLevel}</div>}
-            {ul&&!ac&&<div style={{fontSize:12,fontWeight:700,color:t.accent}}>SELECT</div>}
-          </Btn>;
-        })}
-      </div>
-    </div>
-  );
-
-  return(
-    <div style={{minHeight:"100vh",background:theme.bg,color:theme.textPrimary,fontFamily:"'Outfit',sans-serif",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"fixed",inset:0,background:theme.gradient,pointerEvents:"none",animation:"glowPulse 4s ease-in-out infinite"}}/>
-      <SoundToggle/>
-
-      {/* Category animated background during game */}
-      {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol} bg={theme.bg}/>}
-
-      <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
-
-      {/* LEVEL UP */}
-      {slu&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{animation:"levelUp .6s ease",textAlign:"center"}}>
-          <div style={{fontSize:16,color:theme.accent,letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>LEVEL UP!</div>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{lvl}</div>
-          <div style={{fontSize:18,color:theme.textSecondary,marginTop:8,fontWeight:600}}>{lt}</div>
-          {lvl===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
-          {nu.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:24}}>{t.emoji}</span><div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div></div>)}
-        </div>
-      </div>}
-
-      {shop&&screen==="menu"&&<ThemeShop/>}
-
-      {/* MENU */}
-      {screen==="menu"&&!shop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
-        <div style={{textAlign:"center",marginBottom:12}}>
-          <div style={{fontSize:13,letterSpacing:6,color:theme.accent,fontWeight:600,textTransform:"uppercase",marginBottom:10}}>⚡ Quiz</div>
-          <h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:52,margin:0,background:`linear-gradient(135deg,${theme.textPrimary} 30%,${theme.accent} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.1}}>BLITZ</h1>
-          <div style={{fontSize:11,color:theme.textSecondary,marginTop:6,letterSpacing:2}}>v2.0 — Sound & Visuals</div>
-        </div>
-
-        <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:8,border:`1px solid ${theme.border}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{lvl}</div>
-              <div><div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div><div style={{fontSize:11,color:theme.textSecondary}}>Level {lvl}</div></div>
-            </div>
-            <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
-          </div>
-          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-            <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s"}}/>
-          </div>
-          {hard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE ACTIVE</div>}
-        </div>
-
-        <div style={{display:"flex",gap:8,marginBottom:20}}>
-          {tp>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{hs.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
-            <div style={{width:1,background:theme.border}}/><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{tp}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
-          </div>}
-          <Btn onClick={()=>setShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:tp>0?"column":"row",alignItems:"center",justifyContent:"center",gap:tp>0?4:10,minWidth:tp>0?72:"100%",transition:"all .2s"}}>
-            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:tp>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
-          </Btn>
-        </div>
-
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {CATS.map((c,i)=><Btn key={c} onClick={()=>startGame(c)} style={{
-            background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",
-            cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,
-            transition:"all .25s",width:"100%",textAlign:"left",
-          }}
-            onMouseEnter={e=>{sfx.init();sfx.hover();e.currentTarget.style.borderColor=CC[c]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}
-          >
-            <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CC[c]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CI[c]}</div>
-            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{c}</div><div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(c).length} questions{hard&&" • Hard"}</div></div>
-            <div style={{color:CC[c],fontSize:13,fontWeight:600}}>PLAY →</div>
-          </Btn>)}
-        </div>
-
-        <Btn onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
-          onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
-        >🔀 MIXED BLITZ — All Categories</Btn>
-      </div>}
-
-      {/* COUNTDOWN */}
-      {screen==="countdown"&&<div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontSize:14,color:catCol,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CI[cat]||"🔀"} {cat}{hard&&" • HARD"}</div>
-        {cd>0?<div key={cd} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:catCol,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${catCol}44`}}>{cd}</div>
-        :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:catCol,animation:"countIn .5s ease",textShadow:`0 0 40px ${catCol}44`}}>GO!</div>}
-      </div>}
-
-      {/* GAME */}
-      {screen==="game"&&cQ&&<div style={{paddingTop:24}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:catCol,fontWeight:700}}>{qi+1}</span> / {qs.length}{hard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
-          <div style={{fontSize:15,fontWeight:800,color:theme.textPrimary}}>{score.toLocaleString()}<span style={{fontSize:11,color:theme.textSecondary,marginLeft:4}}>pts</span></div>
-        </div>
-        <div style={{display:"flex",gap:4,marginBottom:20}}>
-          {qs.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<qi?(ah[i]?theme.accent:"#FF4444"):i===qi?catCol+"44":theme.border,transition:"background .3s"}}/>)}
-        </div>
-        <div style={{position:"relative",marginBottom:24}}>
-          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-            <div style={{height:"100%",borderRadius:3,width:`${(tl/tpq)*100}%`,background:tl<=3?"linear-gradient(90deg,#FF4444,#FF6B6B)":`linear-gradient(90deg,${catCol},${catCol}88)`,transition:"width 1s linear,background .3s",...(tl<=3?{animation:"timerPulse .5s ease infinite"}:{})}}/>
-          </div>
-          <div style={{position:"absolute",right:0,top:-24,fontSize:18,fontWeight:800,color:tl<=3?"#FF4444":catCol,fontFamily:"'Dela Gothic One',cursive",...(tl<=3?{animation:"pulse .5s ease infinite"}:{})}}>{tl}s</div>
-        </div>
-        {stk>0&&<div key={stk} style={{display:"flex",justifyContent:"center",marginBottom:16,animation:"streakPop .4s ease"}}>
-          <div style={{background:mult>=3?"linear-gradient(135deg,#FF6B6B22,#FFE66D22)":mult>=2?catCol+"15":theme.border,border:`1px solid ${mult>=3?"#FFE66D44":mult>=2?catCol+"33":theme.border}`,borderRadius:20,padding:"6px 16px",display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:14}}>🔥</span><span style={{fontSize:13,fontWeight:700,color:mult>=3?"#FFE66D":catCol}}>{stk} streak</span>
-            {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
-          </div>
-        </div>}
-        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,
-          boxShadow:`0 0 30px ${catCol}11, inset 0 1px 0 ${theme.textPrimary}08`}}>
-          <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {cQ.opts.map((opt,i)=>{
-            const isCA=i===cQ.a,isSel=sel===i,wasW=sr&&isSel&&!isCA,shC=sr&&isCA;
-            const lb=["A","B","C","D"];
-            let bg=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`,bd=theme.border,tc=theme.textPrimary,an="";
-            if(shC){bg=theme.accent+"20";bd=theme.accent+"55";tc=theme.accent;}
-            if(wasW){bg="#FF444420";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
-            return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
-              background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
-              cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
-              fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
-              animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
-              boxShadow:`0 2px 12px ${theme.bg}88`,
-            }}
-              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"55";e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardHover}F5,${theme.cardHover}EE)`;e.currentTarget.style.boxShadow=`0 4px 20px ${catCol}15`;}}}
-              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}
-            >
-              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
-                {shC?"✓":wasW?"✗":lb[i]}
-              </div><span>{opt}</span>
-            </button>;
-          })}
-        </div>
-        {pp&&<div key={score} style={{position:"fixed",top:"36%",left:"50%",transform:"translateX(-50%)",animation:"slideDown .4s ease,fadeUp .3s ease 1s reverse forwards",textAlign:"center",pointerEvents:"none",zIndex:50}}>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:36,color:catCol,textShadow:`0 0 30px ${catCol}66`}}>+{pp.pts}</div>
-          {pp.mult>1&&<div style={{fontSize:14,color:"#FFE66D",fontWeight:700,marginTop:4}}>×{pp.mult} MULTIPLIER</div>}
-        </div>}
-      </div>}
-
-      {/* RESULT */}
-      {screen==="result"&&<div style={{paddingTop:48,paddingBottom:40,animation:"fadeUp .6s ease"}}>
-        {cor>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[catCol,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
-        <div style={{textAlign:"center",position:"relative",zIndex:1}}>
-          <div style={{fontSize:14,color:theme.textSecondary,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Final Score</div>
-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${catCol})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
-          {score>=hs&&tp>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
-          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CI[cat]||"🔀"} {cat}{hard&&" • Hard"}</div>
-
-          <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:20,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <span style={{fontSize:13,color:theme.textSecondary}}>Level {lvl} — {lt}</span>
-              <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpg} XP</span>
-            </div>
-            <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
-              <div style={{width:`${(xp/xpFor(lvl))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
-            </div>
-            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(lvl)} XP to next</div>
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
-            {[{l:"Correct",v:`${cor}/${qs.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((cor/qs.length)*100)}%`,c:catCol},{l:"Best Streak",v:bstk,c:"#FFE66D"},{l:"Top Mult",v:`×${bstk>=5?3:bstk>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
-              <div key={i} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,padding:"18px 14px",animation:`fadeUp .4s ease ${.2+i*.06}s both`}}>
-                <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Dela Gothic One',cursive"}}>{s.v}</div>
-                <div style={{fontSize:11,color:theme.textSecondary,marginTop:4,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
-              </div>
-            )}
-          </div>
-          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24,animation:"fadeUp .5s ease .45s both"}}>
-            {ah.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
-          </div>
-          <div style={{fontSize:15,color:theme.textSecondary,marginBottom:28,lineHeight:1.6,animation:"fadeUp .5s ease .5s both"}}>
-            {cor>=9?"🏆 Incredible! Absolutely crushed it!":cor>=7?"🎉 Great job! You know your stuff!":cor>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeUp .5s ease .55s both"}}>
-            <Btn onClick={()=>startGame(cat)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${catCol},${catCol}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
-            >Play Again — {cat}</Btn>
-            <Btn onClick={()=>{setScreen("menu");setShop(false);}} style={{width:"100%",padding:"16px 24px",background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:15,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.textSecondary;e.currentTarget.style.color=theme.textPrimary;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
-            >← Back to Categories</Btn>
-            <Btn onClick={()=>{
-              const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${lvl} ${lt}. Can you beat me? ${window.location.href}`;
-              if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
-              else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied! Share it 🎉")).catch(()=>{})}
-            }} style={{width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.accent;e.currentTarget.style.color=theme.accent;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
-            >📤 Share Score</Btn>
-          </div>
-        </div>
-      </div>}
-
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})});}
-</script>
-</body>
-</html>
+diff --git a/index.html b/index.html
+index 1b472986e21dd3b65b9ca41613a90451383096e7..dbe50835d414b1048036329c3de033e2dfd32144 100644
+--- a/index.html
++++ b/index.html
+@@ -539,412 +539,90 @@ const TechBg=({color,bg})=>{
+ 
+ const CategoryBg=({category,color,bg})=>{
+   switch(category){
+     case 'Science':return <ScienceBg color={color} bg={bg}/>;
+     case 'History':return <HistoryBg color={color} bg={bg}/>;
+     case 'Geography':return <GeographyBg color={color} bg={bg}/>;
+     case 'Pop Culture':return <PopCultureBg color={color} bg={bg}/>;
+     case 'Tech':return <TechBg color={color} bg={bg}/>;
+     default:return <ScienceBg color={color} bg={bg}/>;
+   }
+ };
+ 
+ // ═══════════════════════════════════════
+ // GAME DATA
+ // ═══════════════════════════════════════
+ const THEMES=[
+ {id:"midnight",name:"Midnight",free:true,unlockLevel:0,bg:"#0A0A0F",cardBg:"#111118",cardHover:"#15151F",border:"#1A1A2E",accent:"#00E5A0",accentAlt:"#00B4D8",textPrimary:"#F5F5F5",textSecondary:"#555",gradient:"radial-gradient(ellipse at 20% 50%,#00E5A008 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#00B4D806 0%,transparent 50%)",preview:"linear-gradient(135deg,#0A0A0F,#111118,#0A0A0F)",emoji:"🌙"},
+ {id:"ember",name:"Ember",free:true,unlockLevel:0,bg:"#0F0A08",cardBg:"#1A1210",cardHover:"#221815",border:"#2E1A14",accent:"#FF6B35",accentAlt:"#FFB347",textPrimary:"#FFF0E6",textSecondary:"#665544",gradient:"radial-gradient(ellipse at 30% 20%,#FF6B3508 0%,transparent 50%),radial-gradient(ellipse at 70% 90%,#FFB34706 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0A08,#1A1210,#0F0A08)",emoji:"🔥"},
+ {id:"ocean",name:"Deep Ocean",free:false,unlockLevel:5,bg:"#060D14",cardBg:"#0C1A28",cardHover:"#102236",border:"#153050",accent:"#00D4FF",accentAlt:"#0088CC",textPrimary:"#E0F4FF",textSecondary:"#446688",gradient:"radial-gradient(ellipse at 50% 100%,#00D4FF06 0%,transparent 50%),radial-gradient(ellipse at 20% 20%,#00336608 0%,transparent 50%)",preview:"linear-gradient(135deg,#060D14,#0C1A28,#060D14)",emoji:"🌊"},
+ {id:"aurora",name:"Aurora",free:false,unlockLevel:10,bg:"#080B16",cardBg:"#101428",cardHover:"#161C36",border:"#1E2850",accent:"#A78BFA",accentAlt:"#34D399",textPrimary:"#EDE9FE",textSecondary:"#6B5FA0",gradient:"radial-gradient(ellipse at 20% 30%,#A78BFA08 0%,transparent 50%),radial-gradient(ellipse at 80% 70%,#34D39906 0%,transparent 50%)",preview:"linear-gradient(135deg,#080B16,#1E1048,#080B16)",emoji:"🌌"},
+ {id:"sakura",name:"Sakura",free:false,unlockLevel:15,bg:"#140A10",cardBg:"#1F1018",cardHover:"#2A1622",border:"#3D1C2E",accent:"#FF77A9",accentAlt:"#FFB7D5",textPrimary:"#FFE8F0",textSecondary:"#885566",gradient:"radial-gradient(ellipse at 60% 20%,#FF77A908 0%,transparent 50%),radial-gradient(ellipse at 30% 80%,#FFB7D506 0%,transparent 50%)",preview:"linear-gradient(135deg,#140A10,#2A1222,#140A10)",emoji:"🌸"},
+ {id:"golden",name:"Golden Age",free:false,unlockLevel:20,bg:"#0F0D06",cardBg:"#1C1808",cardHover:"#26220E",border:"#3D3410",accent:"#FFD700",accentAlt:"#FFA500",textPrimary:"#FFF8DC",textSecondary:"#887744",gradient:"radial-gradient(ellipse at 40% 30%,#FFD70008 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#FFA50006 0%,transparent 50%)",preview:"linear-gradient(135deg,#0F0D06,#1C1808,#0F0D06)",emoji:"👑"},
+ {id:"neon",name:"Neon Nights",free:false,unlockLevel:25,bg:"#05000A",cardBg:"#0E0518",cardHover:"#150822",border:"#2A1050",accent:"#E040FB",accentAlt:"#00E5FF",textPrimary:"#F3E5F5",textSecondary:"#7744AA",gradient:"radial-gradient(ellipse at 30% 50%,#E040FB06 0%,transparent 50%),radial-gradient(ellipse at 80% 30%,#00E5FF05 0%,transparent 50%)",preview:"linear-gradient(135deg,#05000A,#1A0530,#05000A)",emoji:"💜"},
+ {id:"matrix",name:"Matrix",free:false,unlockLevel:30,bg:"#000A00",cardBg:"#001A00",cardHover:"#002400",border:"#003D00",accent:"#00FF41",accentAlt:"#00CC33",textPrimary:"#CCFFCC",textSecondary:"#337733",gradient:"radial-gradient(ellipse at 50% 50%,#00FF4106 0%,transparent 50%)",preview:"linear-gradient(135deg,#000A00,#001A00,#000A00)",emoji:"🟢"},
+ ];
+-
+-const QE={
+-Science:[{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},{q:"How many bones in the adult human body?",opts:["186","206","226","196"],a:1},{q:"What planet is the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},{q:"What gas do plants absorb?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},{q:"Element with atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},{q:"Hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},{q:"What organ filters blood?",opts:["Liver","Heart","Kidney","Lungs"],a:2},{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},{q:"Largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2}],
+-History:[{q:"Year World War II ended?",opts:["1943","1944","1945","1946"],a:2},{q:"First person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},{q:"Who built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},{q:"Year Bangladesh gained independence?",opts:["1947","1965","1971","1975"],a:2},{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},{q:"Empire ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},{q:"Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},{q:"Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},{q:"First US President?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},{q:"City buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2}],
+-Geography:[{q:"Largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},{q:"Capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},{q:"Longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},{q:"Smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},{q:"Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},{q:"Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},{q:"Largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},{q:"How many continents?",opts:["5","6","7","8"],a:2},{q:"Tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},{q:"Country with most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2}],
+-"Pop Culture":[{q:"Highest-grossing film ever (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},{q:"Who wrote Harry Potter?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},{q:"First iPhone released?",opts:["2005","2006","2007","2008"],a:2},{q:"Band behind 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},{q:"Year YouTube was founded?",opts:["2003","2005","2007","2009"],a:1},{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},{q:"Nintendo's console?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},{q:"Mario's brother?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},{q:"Movie with character Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},{q:"Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1}],
+-Tech:[{q:"What does HTTP stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},{q:"Father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},{q:"Most used web dev language?",opts:["Python","Java","JavaScript","C++"],a:2},{q:"What does AI stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},{q:"Who developed Android?",opts:["Apple","Microsoft","Google","Samsung"],a:2},{q:"Bits in a byte?",opts:["4","6","8","16"],a:2},{q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},{q:"Who makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},{q:"World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},{q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0}],
++const THEME_PRICES={ocean:300,aurora:600,sakura:900,golden:1200,neon:1500,matrix:2000};
++const SNAKES={99:54,95:72,92:51,83:19,73:1,64:36,48:9,44:22,32:10,16:4};
++const LADDERS={2:38,7:14,8:31,15:26,21:42,28:84,36:44,51:67,71:91,78:98};
++const COOLDOWN_MS=60*60*1000;
++
++const mk=(q,opts,a)=>({q,opts,a});
++const baseEasy={
++Science:[mk("What is the chemical symbol for gold?",["Go","Au","Ag","Gd"],1),mk("How many bones in the adult human body?",["186","206","226","196"],1),mk("What planet is the Red Planet?",["Venus","Jupiter","Mars","Saturn"],2),mk("What gas do plants absorb?",["Oxygen","Nitrogen","CO₂","Hydrogen"],2),mk("Element with atomic number 1?",["Helium","Hydrogen","Lithium","Carbon"],1),mk("Hardest natural substance?",["Titanium","Quartz","Diamond","Sapphire"],2),mk("How many chromosomes do humans have?",["44","46","48","42"],1),mk("What organ filters blood?",["Liver","Heart","Kidney","Lungs"],2),mk("What force keeps planets in orbit?",["Magnetism","Friction","Gravity","Inertia"],2),mk("Largest organ of the human body?",["Liver","Brain","Skin","Lungs"],2),mk("Water boils at what temperature at sea level?",["90°C","95°C","100°C","110°C"],2),mk("What blood type is known as universal donor?",["AB+","A+","O-","B-"],2),mk("Which planet has rings most visible from Earth?",["Mars","Saturn","Venus","Mercury"],1),mk("What is the center of an atom called?",["Shell","Nucleus","Ion","Proton"],1),mk("Which vitamin helps blood clotting?",["Vitamin C","Vitamin D","Vitamin K","Vitamin B6"],2),mk("Animals that eat only plants are called?",["Carnivores","Omnivores","Herbivores","Scavengers"],2),mk("What layer protects Earth from UV radiation?",["Troposphere","Ozone layer","Ionosphere","Mantle"],1),mk("What do bees collect from flowers?",["Pollen and nectar","Seeds","Chlorophyll","Minerals"],0),mk("How many hearts does an octopus have?",["1","2","3","4"],2),mk("What process turns liquid water into vapor?",["Condensation","Evaporation","Freezing","Sublimation"],1)],
++History:[mk("Year World War II ended?",["1943","1944","1945","1946"],2),mk("First person to walk on the Moon?",["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],2),mk("Who built the pyramids of Giza?",["Roman","Greek","Egyptian","Persian"],2),mk("Year Bangladesh gained independence?",["1947","1965","1971","1975"],2),mk("Who painted the Mona Lisa?",["Michelangelo","Da Vinci","Raphael","Rembrandt"],1),mk("Empire ruled by Genghis Khan?",["Ottoman","Mongol","Roman","Persian"],1),mk("Titanic sank in which year?",["1905","1912","1918","1920"],1),mk("Berlin Wall fell in what year?",["1987","1989","1991","1993"],1),mk("First US President?",["Jefferson","Lincoln","Washington","Adams"],2),mk("City buried by Vesuvius?",["Rome","Athens","Pompeii","Carthage"],2),mk("Who was known as the Maid of Orléans?",["Cleopatra","Joan of Arc","Boudica","Catherine"],1),mk("The Great Wall is in which country?",["Japan","China","Korea","Mongolia"],1),mk("Which war was fought in America from 1861-65?",["Civil War","WWI","Revolutionary War","1812 War"],0),mk("Who discovered sea route to India via Cape?",["Columbus","Vasco da Gama","Magellan","Cook"],1),mk("In which city was the Eiffel Tower built?",["London","Rome","Paris","Berlin"],2),mk("Who was the first Emperor of Rome?",["Julius Caesar","Augustus","Nero","Trajan"],1),mk("Renaissance began in which country?",["France","Spain","Italy","Germany"],2),mk("Who invented the printing press in Europe?",["Edison","Gutenberg","Galileo","Newton"],1),mk("The Cold War was mainly between USA and?",["China","Japan","USSR","Germany"],2),mk("Who was called the Iron Lady?",["Indira Gandhi","Margaret Thatcher","Angela Merkel","Golda Meir"],1)],
++Geography:[mk("Largest ocean on Earth?",["Atlantic","Indian","Arctic","Pacific"],3),mk("Capital of Australia?",["Sydney","Melbourne","Canberra","Perth"],2),mk("Longest river in the world?",["Amazon","Nile","Yangtze","Mississippi"],1),mk("Smallest country in the world?",["Monaco","Vatican City","San Marino","Liechtenstein"],1),mk("Sahara Desert is on which continent?",["Asia","S. America","Africa","Australia"],2),mk("Land of the Rising Sun?",["China","S. Korea","Thailand","Japan"],3),mk("Largest island in the world?",["Borneo","Madagascar","Greenland","New Guinea"],2),mk("How many continents?",["5","6","7","8"],2),mk("Tallest mountain in the world?",["K2","Kangchenjunga","Everest","Lhotse"],2),mk("Country with most islands?",["Indonesia","Philippines","Sweden","Japan"],2),mk("Which country has the city of Barcelona?",["Italy","Spain","Portugal","France"],1),mk("Capital of Canada?",["Toronto","Ottawa","Vancouver","Montreal"],1),mk("Which line divides Earth into north and south?",["Prime Meridian","Equator","Tropic of Cancer","Date Line"],1),mk("Which desert is in Mongolia and China?",["Kalahari","Gobi","Atacama","Namib"],1),mk("Mount Kilimanjaro is in?",["Kenya","Ethiopia","Tanzania","Uganda"],2),mk("Capital of Brazil?",["Rio","São Paulo","Brasília","Salvador"],2),mk("Which US state is known as the Aloha State?",["California","Hawaii","Florida","Alaska"],1),mk("Which sea lies between Europe and Africa?",["Red Sea","Caribbean Sea","Mediterranean Sea","Arabian Sea"],2),mk("Niagara Falls is on border of USA and?",["Mexico","Canada","Cuba","Greenland"],1),mk("Which country has the most population?",["India","USA","China","Indonesia"],0)],
++"Pop Culture":[mk("Highest-grossing film ever (unadjusted)?",["Titanic","Avatar","Endgame","Star Wars"],1),mk("Who wrote Harry Potter?",["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],1),mk("First iPhone released?",["2005","2006","2007","2008"],2),mk("Band behind 'Bohemian Rhapsody'?",["Beatles","Led Zeppelin","Queen","Pink Floyd"],2),mk("Year YouTube was founded?",["2003","2005","2007","2009"],1),mk("Who created Facebook?",["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],1),mk("Nintendo's console?",["Xbox","PlayStation","Switch","Steam Deck"],2),mk("Mario's brother?",["Wario","Luigi","Toad","Yoshi"],1),mk("Movie with character Simba?",["Bambi","Jungle Book","Lion King","Tarzan"],2),mk("Batman's butler?",["Jarvis","Alfred","Watson","Jeeves"],1),mk("Which artist is known as the Queen of Pop?",["Madonna","Adele","Beyoncé","Rihanna"],0),mk("Streaming show with Eleven?",["Dark","Stranger Things","Wednesday","The Boys"],1),mk("Pikachu belongs to which franchise?",["Digimon","Pokémon","Yu-Gi-Oh!","Naruto"],1),mk("Which movie features Wakanda?",["Thor","Black Panther","Avatar","Dune"],1),mk("The Oscars are for which industry?",["Music","Film","Gaming","TV only"],1),mk("Taylor Swift's fanbase is called?",["Beliebers","Swifties","Directioners","ARMY"],1),mk("Fortnite is primarily what genre?",["Battle Royale","Sports","Puzzle","Racing"],0),mk("K-pop group known for Dynamite?",["EXO","BTS","Twice","Seventeen"],1),mk("Studio behind Spirited Away?",["Pixar","Ghibli","DreamWorks","Madhouse"],1),mk("Meme phrase: 'One does not simply...' is from?",["Harry Potter","Lord of the Rings","Star Wars","Matrix"],1)],
++Tech:[mk("What does HTTP stand for?",["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],0),mk("Father of computers?",["Turing","Babbage","von Neumann","Lovelace"],1),mk("Most used web dev language?",["Python","Java","JavaScript","C++"],2),mk("What does AI stand for?",["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],1),mk("Who developed Android?",["Apple","Microsoft","Google","Samsung"],2),mk("Bits in a byte?",["4","6","8","16"],2),mk("What does URL stand for?",["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],1),mk("Who makes the iPhone?",["Samsung","Google","Apple","Huawei"],2),mk("World Wide Web invented?",["1985","1989","1993","1997"],1),mk("What does RAM stand for?",["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],0),mk("What does CPU stand for?",["Central Processing Unit","Computer Power Unit","Control Program Unit","Central Program Utility"],0),mk("Which company created Windows?",["Apple","Microsoft","IBM","Oracle"],1),mk("What language runs in browsers?",["C","Java","JavaScript","Rust"],2),mk("What does Wi‑Fi mainly provide?",["Wireless internet","Battery charging","File compression","Virus protection"],0),mk("Which symbol starts a hashtag?",["@","#","$","%"],1),mk("USB stands for?",["Universal Serial Bus","Unified System Base","Ultra Speed Board","United Serial Bridge"],0),mk("What is cloud computing?",["Weather analysis","Remote servers over internet","Only AI chips","Local storage"],1),mk("Which app is known for short vertical videos?",["LinkedIn","TikTok","Slack","Zoom"],1),mk("What does GPS provide?",["Gaming power","Location navigation","Graphic rendering","Password security"],1),mk("QR code is mainly used to?",["Encrypt files","Store scannable data","Boost Wi‑Fi speed","Mine crypto"],1)]
+ };
+-const QH={
+-Science:[{q:"Heisenberg Uncertainty Principle is about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},{q:"Most abundant atmospheric gas?",opts:["Oxygen","Nitrogen","CO₂","Argon"],a:1},{q:"Absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},{q:"Particle with no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},{q:"Carbon-14 half-life?",opts:["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],a:1},{q:"Vitamin from sunlight?",opts:["Vit A","Vit B12","Vit C","Vit D"],a:3},{q:"Star collapse → black hole cause?",opts:["Fission","Gravitational collapse","Fusion","Thermal expansion"],a:1},{q:"Chandrasekhar limit is?",opts:["Max white dwarf mass","Speed of light","Planck length","Bohr radius"],a:0},{q:"pH of pure water?",opts:["5","7","8","6"],a:1},{q:"Beta decay emits?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1}],
+-History:[{q:"Treaty of Westphalia ended?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},{q:"Last Mughal Emperor?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},{q:"D-Day code name?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},{q:"Rosetta Stone deciphered?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},{q:"Who led Salt March 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},{q:"Magna Carta year?",opts:["1066","1215","1315","1492"],a:1},{q:"Ottoman Empire fell after?",opts:["Crimean War","Balkan Wars","WWI","WWII"],a:2},{q:"Who wrote Art of War?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},{q:"Eastern Roman Empire = ?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},{q:"Silk Road → which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2}],
+-Geography:[{q:"Deepest ocean point?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},{q:"Most time zones country?",opts:["Russia","USA","France","China"],a:2},{q:"Driest continent?",opts:["Africa","Australia","Antarctica","Asia"],a:2},{q:"Lake Baikal country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},{q:"Strait: Europe↔Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},{q:"Never colonized African country?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},{q:"Country on two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3}],
+-"Pop Culture":[{q:"First Best Picture Oscar?",opts:["Sunrise","Wings","Jazz Singer","Metropolis"],a:1},{q:"Created Sherlock Holmes?",opts:["Christie","Conan Doyle","Poe","Dickens"],a:1},{q:"First game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},{q:"First animated feature film?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},{q:"Directed Parasite (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},{q:"Best-selling game ever?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},{q:"Netflix first original?",opts:["Stranger Things","House of Cards","OITNB","Narcos"],a:1},{q:"Highest MAL rated anime?",opts:["AoT","FMA:B","Steins;Gate","Gintama"],a:1},{q:"Spotify launched?",opts:["2006","2008","2010","2012"],a:1},{q:"Interstellar composer?",opts:["J. Williams","H. Zimmer","H. Shore","D. Elfman"],a:1}],
+-Tech:[{q:"Invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},{q:"Binary search complexity?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},{q:"Haskell's paradigm?",opts:["OOP","Procedural","Functional","Logic"],a:2},{q:"First microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},{q:"OSI routing layer?",opts:["Transport","Network","Data Link","Session"],a:1},{q:"Bitcoin consensus?",opts:["Proof of Stake","Proof of Work","Delegated","Authority"],a:1},{q:"CUDA stands for?",opts:["Compute Unified Device Arch","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],a:0},{q:"LIDAR stands for?",opts:["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],a:0},{q:"Linux kernel language?",opts:["C++","C","Assembly","Rust"],a:1},{q:"API stands for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0}],
++const baseHard={
++Science:[mk("Heisenberg Uncertainty Principle is about?",["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],1),mk("Most abundant atmospheric gas?",["Oxygen","Nitrogen","CO₂","Argon"],1),mk("Absolute zero in Celsius?",["-273.15°C","-260°C","-300°C","-100°C"],0),mk("Particle with no electric charge?",["Proton","Electron","Neutron","Positron"],2),mk("Carbon-14 half-life?",["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],1),mk("Vitamin from sunlight?",["Vit A","Vit B12","Vit C","Vit D"],3),mk("Star collapse → black hole cause?",["Fission","Gravitational collapse","Fusion","Thermal expansion"],1),mk("Chandrasekhar limit is?",["Max white dwarf mass","Speed of light","Planck length","Bohr radius"],0),mk("pH of pure water?",["5","7","8","6"],1),mk("Beta decay emits?",["Alpha particle","Electron/positron","Neutron","Photon"],1),mk("CRISPR primarily uses which enzyme?",["DNA polymerase","Cas9","Helicase","Ligase"],1),mk("Hawking radiation is emitted by?",["Neutron stars","Black holes","Quasars","White dwarfs"],1),mk("Schrödinger equation belongs to?",["Relativity","Quantum mechanics","Thermodynamics","Optics"],1),mk("Benzene molecular formula?",["C6H6","C6H12","C5H6","C7H8"],0),mk("Neurotransmitter linked to reward pathways?",["Dopamine","Insulin","Melanin","Keratin"],0)],
++History:[mk("Treaty of Westphalia ended?",["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],1),mk("Last Mughal Emperor?",["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],1),mk("D-Day code name?",["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],1),mk("Rosetta Stone deciphered?",["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],1),mk("Who led Salt March 1930?",["Nehru","Gandhi","Bose","Patel"],1),mk("Magna Carta year?",["1066","1215","1315","1492"],1),mk("Ottoman Empire fell after?",["Crimean War","Balkan Wars","WWI","WWII"],2),mk("Who wrote Art of War?",["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],1),mk("Eastern Roman Empire = ?",["Persian","Byzantine","Holy Roman","Assyrian"],1),mk("Silk Road → which city?",["Delhi","Baghdad","Chang'an","Constantinople"],2),mk("Congress of Vienna took place in?",["1815","1776","1919","1871"],0),mk("Treaty ending WWI?",["Versailles","Paris","Tordesillas","Brest-Litovsk"],0),mk("Mali emperor famed for pilgrimage?",["Mansa Musa","Sundiata","Askia","Shaka"],0),mk("Meiji Restoration happened in?",["China","Japan","Korea","Thailand"],1),mk("The Annales School is linked to?",["French historiography","Roman law","Soviet cinema","Greek drama"],0)],
++Geography:[mk("Deepest ocean point?",["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],1),mk("Most time zones country?",["Russia","USA","France","China"],2),mk("Driest continent?",["Africa","Australia","Antarctica","Asia"],2),mk("Lake Baikal country?",["Kazakhstan","Mongolia","Russia","China"],2),mk("Strait: Europe↔Africa?",["Hormuz","Malacca","Gibraltar","Bosporus"],2),mk("Largest desert by area?",["Sahara","Arabian","Antarctic","Gobi"],2),mk("Most spoken native language?",["English","Spanish","Mandarin","Hindi"],2),mk("Never colonized African country?",["Kenya","Ethiopia","Nigeria","Ghana"],1),mk("Longest mountain range on land?",["Himalayas","Rockies","Andes","Alps"],2),mk("Country on two continents?",["Egypt","Turkey","Russia","All of these"],3),mk("Nazca Plate is near which ocean?",["Atlantic","Indian","Pacific","Arctic"],2),mk("Demographic transition stage with low birth/death?",["Stage 1","Stage 4","Stage 2","Stage 3"],1),mk("Kaliningrad is an exclave of?",["Poland","Russia","Germany","Lithuania"],1),mk("The Sahel lies south of which desert?",["Atacama","Sahara","Gobi","Karakum"],1),mk("Pamir Knot refers to?",["River delta","Mountain junction","Coral reef","Ice shelf"],1)],
++"Pop Culture":[mk("First Best Picture Oscar?",["Sunrise","Wings","Jazz Singer","Metropolis"],1),mk("Created Sherlock Holmes?",["Christie","Conan Doyle","Poe","Dickens"],1),mk("First game played in space?",["Tetris","Pong","Space Invaders","Pac-Man"],0),mk("First animated feature film?",["Snow White","Fantasia","Pinocchio","El Apóstol"],3),mk("Directed Parasite (2019)?",["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],1),mk("Best-selling game ever?",["GTA V","Tetris","Minecraft","Wii Sports"],2),mk("Netflix first original?",["Stranger Things","House of Cards","OITNB","Narcos"],1),mk("Highest MAL rated anime?",["AoT","FMA:B","Steins;Gate","Gintama"],1),mk("Spotify launched?",["2006","2008","2010","2012"],1),mk("Interstellar composer?",["J. Williams","H. Zimmer","H. Shore","D. Elfman"],1),mk("Nolan film with dream levels?",["Memento","Inception","Tenet","Dunkirk"],1),mk("Indie game about a mountain climb?",["Celeste","Hades","Inside","Limbo"],0),mk("Auteur theory relates to?",["Game engines","Film direction","Music notation","VFX hardware"],1),mk("Leitmotif is a concept in?",["Color grading","Musical storytelling","Editing cuts","Camera lenses"],1),mk("Studio Ghibli founder-director?",["Makoto Shinkai","Hayao Miyazaki","Satoshi Kon","Mamoru Oshii"],1)],
++Tech:[mk("Invented the World Wide Web?",["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],1),mk("Binary search complexity?",["O(n)","O(log n)","O(n²)","O(1)"],1),mk("Haskell's paradigm?",["OOP","Procedural","Functional","Logic"],2),mk("First microprocessor maker?",["AMD","Intel","IBM","Motorola"],1),mk("OSI routing layer?",["Transport","Network","Data Link","Session"],1),mk("Bitcoin consensus?",["Proof of Stake","Proof of Work","Delegated","Authority"],1),mk("CUDA stands for?",["Compute Unified Device Arch","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],0),mk("LIDAR stands for?",["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],0),mk("Linux kernel language?",["C++","C","Assembly","Rust"],1),mk("API stands for?",["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],0),mk("RSA is based on difficulty of?",["Sorting","Prime factorization","Hash collisions","Compression"],1),mk("TCP guarantees?",["Best-effort only","Reliable ordered delivery","Broadcast only","Encryption"],1),mk("Compiler frontend mainly handles?",["Code gen","Parsing/semantic analysis","Thread scheduling","GC only"],1),mk("Gradient descent is used to?",["Route packets","Optimize model parameters","Render polygons","Encrypt files"],1),mk("Zero-knowledge proofs allow?",["Sharing private key","Proving without revealing secret","Infinite bandwidth","No authentication"],1)]
+ };
+-
+-const CATS=Object.keys(QE);
++const CATS=Object.keys(baseEasy);
+ const CC={Science:"#00E5A0",History:"#FF6B6B",Geography:"#4ECDC4","Pop Culture":"#FFE66D",Tech:"#7B68EE"};
+ const CI={Science:"🧬",History:"🏛️",Geography:"🌍","Pop Culture":"🎬",Tech:"💻"};
+-const QPR=10;
+-const xpFor=l=>100+(l-1)*60;
++const QPR=10;const xpFor=l=>100+(l-1)*60;
+ const TITLES=["Newbie","Rookie","Learner","Student","Scholar","Thinker","Sharp Mind","Brainiac","Expert","Genius","Mastermind","Prodigy","Sage","Oracle","Luminary","Visionary","Legend","Mythic","Titan","Immortal","Challenger","Champion","Conqueror","Ascendant","Paragon","Transcendent","Architect","Overlord","Cosmic Brain","GOAT","∞"];
++const TRIVIA={Science:[{id:"science_dna",title:"The Double Helix: How DNA Was Discovered",intro:"DNA’s structure was solved through a race of ideas, experiments, and X-ray images.",body:"In 1953, Watson and Crick proposed the double helix model using experimental clues from Rosalind Franklin and Maurice Wilkins. The model explained how genetic information can be stored and copied.",facts:["Franklin’s Photo 51 was crucial evidence.","Base pairing (A-T, C-G) explains replication.","The discovery transformed biology and medicine."]},{id:"science_blackholes",title:"Black Holes: Where Even Light Cannot Escape",intro:"Black holes form when massive stars collapse under gravity.",body:"Their event horizon marks a boundary where escape velocity exceeds light speed. Modern telescopes have captured black hole shadows, and Hawking proposed slow radiation from quantum effects.",facts:["The Milky Way hosts Sagittarius A*.","Spaghettification stretches objects by tidal forces.","Hawking radiation implies slow evaporation."]},{id:"science_crispr",title:"CRISPR: Editing the Code of Life",intro:"CRISPR gives scientists a programmable way to edit genes.",body:"Using guide RNA and enzymes like Cas9, researchers can target specific DNA sequences. It enables disease research, crop improvement, and potential therapies.",facts:["CRISPR came from bacterial immunity.","It can knock out or repair genes.","Ethics is central to human applications."]}],History:[{id:"history_colosseum",title:"The Colosseum: Rome's Arena of Death",intro:"The Colosseum symbolized Roman power and spectacle.",body:"Built in the 1st century CE, it hosted gladiator fights, hunts, and public shows for tens of thousands of spectators. Engineering innovations included vaulted corridors and retractable awnings.",facts:["Could seat ~50,000 people.","Built mainly from stone and concrete.","Events also served political messaging."]},{id:"history_silkroad",title:"Silk Road: The Highway That Connected the World",intro:"The Silk Road linked Asia, Europe, and Africa.",body:"More than one road, it was a network carrying silk, spices, ideas, religions, and technologies. Cities thrived as trade hubs between empires.",facts:["Paper and gunpowder spread westward.","Merchants used caravans and sea routes.","Marco Polo popularized stories in Europe."]},{id:"history_alexandria",title:"The Library of Alexandria: Lost Knowledge",intro:"Alexandria aimed to collect the world’s knowledge.",body:"Scholars studied mathematics, astronomy, and philosophy there. Though its destruction happened over time, it remains a symbol of lost intellectual heritage.",facts:["Euclid worked in Alexandria.","It held scrolls from many regions.","Its legacy inspires modern libraries."]}],Geography:[{id:"geography_ring",title:"Ring of Fire: Earth's Most Explosive Belt",intro:"The Pacific Ring of Fire is packed with volcanoes and quakes.",body:"It traces tectonic boundaries where plates subduct and collide. This creates frequent earthquakes, volcanic arcs, and tsunamis.",facts:["~75% of active volcanoes are here.","Japan, Indonesia, and Chile lie on it.","Subduction drives magma formation."]},{id:"geography_mariana",title:"The Mariana Trench: Deepest Place on Earth",intro:"The Mariana Trench plunges nearly 11 km deep.",body:"Located in the western Pacific, it forms at a convergent plate boundary. Explorers have visited with specialized submersibles due to crushing pressure.",facts:["Challenger Deep is the deepest point.","Pressure exceeds 1,000 atmospheres.","Unique microbes survive extreme conditions."]},{id:"geography_aurora",title:"Aurora Borealis: Nature's Light Show",intro:"Auroras occur when solar particles strike Earth’s atmosphere.",body:"Charged particles guided by magnetic fields collide with gases, producing glowing curtains of green, pink, and violet light.",facts:["Best seen near polar regions.","Oxygen often creates green light.","Solar storms intensify displays."]}],"Pop Culture":[{id:"pop_nolan",title:"Christopher Nolan: The Architect of Dreams",intro:"Nolan blends blockbuster scale with complex storytelling.",body:"From Inception to Interstellar, his films explore time, memory, and identity with practical effects and strong sound design.",facts:["Frequent collaborator: Hans Zimmer.","Uses large-format cameras.","Known for non-linear narratives."]},{id:"pop_games",title:"The Evolution of Video Games",intro:"Games evolved from arcade cabinets to cloud gaming.",body:"Advances in graphics, hardware, and internet connectivity transformed games into a global cultural and economic force.",facts:["Pong helped launch arcade era.","3D gaming exploded in the 1990s.","Indie games thrive through digital stores."]},{id:"pop_ghibli",title:"Studio Ghibli: Japan's Animation Treasure",intro:"Ghibli films are celebrated for artistry and heart.",body:"Led by creators like Hayao Miyazaki and Isao Takahata, the studio blends hand-crafted visuals with emotional storytelling.",facts:["Spirited Away won an Oscar.","Nature is a recurring theme.","Characters are nuanced and human."]}],Tech:[{id:"tech_internet",title:"The Birth of the Internet",intro:"The internet began as a research network.",body:"ARPANET connected early institutions, while TCP/IP standardized communication. Later, Tim Berners-Lee created the World Wide Web.",facts:["ARPANET went live in 1969.","TCP/IP became standard in 1983.","The web is only one layer of the internet."]},{id:"tech_ai",title:"How AI Learns: Neural Networks Explained",intro:"Neural networks learn patterns from data.",body:"Layers of weighted connections adjust via optimization methods like gradient descent. Modern models scale to billions of parameters.",facts:["Inspired loosely by neurons.","Training minimizes prediction error.","Transformers power many modern AI systems."]},{id:"tech_crypto",title:"Cryptography: The Art of Secret Messages",intro:"Cryptography protects communication and identity.",body:"From classical ciphers to modern RSA and elliptic-curve systems, cryptography secures banking, messaging, and the web.",facts:["HTTPS depends on cryptography.","Public-key systems use key pairs.","Hash functions verify integrity."]}]};
+ const LS="quiz_blitz_save";
+ const load=()=>{try{return JSON.parse(localStorage.getItem(LS))||null}catch{return null}};
+ const save=d=>{try{localStorage.setItem(LS,JSON.stringify(d))}catch{}};
+ 
++const SnakeLadderGame=({theme,onClose,onFinish})=>{const [p,setP]=useState(0),[a,setA]=useState(0),[dice,setDice]=useState(1),[rolling,setRolling]=useState(false),[turn,setTurn]=useState('player'),[log,setLog]=useState([]),[winner,setWinner]=useState(null);
++ const step=(pos,roll,who)=>{let np=pos+roll;if(np>100)np=pos;let event='';if(SNAKES[np]){np=SNAKES[np];event='🐍';}else if(LADDERS[np]){np=LADDERS[np];event='🪜';}setLog(l=>[`${who==='player'?'You':'AI'} rolled ${roll} ${event}`,...l].slice(0,5));return np};
++ const roll=()=>{if(rolling||turn!=='player'||winner)return;setRolling(true);let c=0;const iv=setInterval(()=>{setDice(1+Math.floor(Math.random()*6));if(++c>8){clearInterval(iv);const r=1+Math.floor(Math.random()*6);setDice(r);const np=step(p,r,'player');setP(np);setRolling(false);if(np===100){setWinner('player');onFinish('player',a);return;}setTurn('ai');setTimeout(()=>{const ar=1+Math.floor(Math.random()*6);setDice(ar);const na=step(a,ar,'ai');setA(na);if(na===100){setWinner('ai');onFinish('ai',na);return;}setTurn('player');},1300);}},90)};
++ const cell=n=>{const row=Math.floor((n-1)/10);const col=row%2===0?(n-1)%10:9-(n-1)%10;return {r:9-row,c:col}};
++ return <div style={{position:'fixed',inset:0,zIndex:180,background:theme.bg,padding:16,overflow:'auto'}}><div style={{maxWidth:520,margin:'0 auto'}}><button onClick={onClose} style={{background:'none',border:'none',color:theme.textSecondary}}>← Back</button><h2 style={{fontFamily:"'Dela Gothic One',cursive",margin:'8px 0 12px'}}>🎲 Snake & Ladder</h2><div style={{display:'grid',gridTemplateColumns:'repeat(10,1fr)',gap:2,background:theme.cardBg,padding:8,borderRadius:12,border:`1px solid ${theme.border}`}}>{Array.from({length:100},(_,i)=>{const n=100-i;const pos=cell(n);const pp=p===n,aa=a===n;return <div key={n} style={{aspectRatio:'1/1',fontSize:10,background:'#00000022',borderRadius:4,padding:2,position:'relative',gridRow:pos.r+1,gridColumn:pos.c+1}}>{n}{SNAKES[n]&&<span style={{position:'absolute',right:2,bottom:2}}>🐍</span>}{LADDERS[n]&&<span style={{position:'absolute',right:2,bottom:2}}>🪜</span>}{pp&&<div style={{position:'absolute',left:2,bottom:2}}>🟢</div>}{aa&&<div style={{position:'absolute',left:14,bottom:2}}>🔴</div>}</div>})}</div><div style={{marginTop:12,fontSize:13}}>You: {p} | AI: {a} | Turn: {turn==='player'?'You':'AI'}</div><button onClick={roll} disabled={rolling||turn!=='player'||winner} style={{marginTop:10,width:'100%',padding:12,borderRadius:10,border:'none',background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,color:theme.bg,fontWeight:800}}>{winner?`Winner: ${winner}`:`ROLL DICE (${dice})`}</button><div style={{marginTop:8,fontSize:12,color:theme.textSecondary}}>{log.map((l,i)=><div key={i}>{l}</div>)}</div></div></div>};
++
++const TriviaReward=({theme,category,content,xpBonus,coinBonus,onClose})=><div style={{position:'fixed',inset:0,zIndex:200,background:theme.bg,overflowY:'auto',padding:20}}><div style={{maxWidth:640,margin:'0 auto'}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{fontWeight:700,color:theme.accent}}>PERFECT 10 • {category}</div><button onClick={onClose} style={{background:'none',border:'none',color:theme.textSecondary}}>✕</button></div><h2 style={{fontFamily:"'Dela Gothic One',cursive",margin:'10px 0'}}>{content.title}</h2><div style={{height:180,borderRadius:14,background:`linear-gradient(135deg,${theme.accent}33,${theme.accentAlt}22)`,border:`1px solid ${theme.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:58}}>✨</div><p style={{marginTop:14,color:theme.textSecondary}}>{content.intro}</p><p style={{marginTop:10,lineHeight:1.6}}>{content.body}</p><h3 style={{marginTop:16}}>Did you know?</h3><ul>{content.facts.map((f,i)=><li key={i} style={{margin:'6px 0',color:theme.textSecondary}}>{f}</li>)}</ul><div style={{marginTop:16,padding:12,borderRadius:10,border:`1px solid ${theme.border}`,background:theme.cardBg}}>Bonus: +{xpBonus} XP • +{coinBonus} coins</div></div></div>;
++
+ function App(){
+   const sv=load();
+-  const[screen,setScreen]=useState("menu");
+-  const[cat,setCat]=useState(null);
+-  const[qs,setQs]=useState([]);
+-  const[qi,setQi]=useState(0);
+-  const[score,setScore]=useState(0);
+-  const[stk,setStk]=useState(0);
+-  const[bstk,setBstk]=useState(0);
+-  const[tl,setTl]=useState(12);
+-  const[sel,setSel]=useState(null);
+-  const[sr,setSr]=useState(false);
+-  const[cor,setCor]=useState(0);
+-  const[cd,setCd]=useState(3);
+-  const[hs,setHs]=useState(sv?.hs||0);
+-  const[tp,setTp]=useState(sv?.tp||0);
+-  const[mult,setMult]=useState(1);
+-  const[pp,setPp]=useState(null);
+-  const[ah,setAh]=useState([]);
+-  const[tid,setTid]=useState(sv?.tid||"midnight");
+-  const[lvl,setLvl]=useState(sv?.lvl||1);
+-  const[xp,setXp]=useState(sv?.xp||0);
+-  const[xpg,setXpg]=useState(0);
+-  const[slu,setSlu]=useState(false);
+-  const[nu,setNu]=useState([]);
+-  const[shop,setShop]=useState(false);
+-  const[soundOn,setSoundOn]=useState(sv?.soundOn!==false);
+-  const tr=useRef(null);const pr=useRef(null);const ambRef=useRef(null);
+-
++  const [screen,setScreen]=useState('menu');const [cat,setCat]=useState(null);const [qs,setQs]=useState([]);const [qi,setQi]=useState(0);const [score,setScore]=useState(0);const [cor,setCor]=useState(0);const [tl,setTl]=useState(12);const [sel,setSel]=useState(null);const [sr,setSr]=useState(false);const [cd,setCd]=useState(3);const [hs,setHs]=useState(sv?.hs||0);const [tp,setTp]=useState(sv?.tp||0);const [tid,setTid]=useState(sv?.tid||'midnight');const [lvl,setLvl]=useState(sv?.lvl||1);const [xp,setXp]=useState(sv?.xp||0);const [xpg,setXpg]=useState(0);const [shop,setShop]=useState(false);const [soundOn,setSoundOn]=useState(sv?.soundOn!==false);const [coins,setCoins]=useState(sv?.coins||0);const [unlockedThemes,setUnlockedThemes]=useState(sv?.unlockedThemes||[]);const [slLastPlay,setSlLastPlay]=useState(sv?.slLastPlay||0);const [slWins,setSlWins]=useState(sv?.slWins||0);const [slLosses,setSlLosses]=useState(sv?.slLosses||0);const [showSnake,setShowSnake]=useState(false);const [showTrivia,setShowTrivia]=useState(false);const [trivia,setTrivia]=useState(null);const [unlockedTrivia,setUnlockedTrivia]=useState(sv?.unlockedTrivia||[]);const [perfectTens,setPerfectTens]=useState(sv?.perfectTens||{});const tr=useRef(null);
++  const hard=lvl>=20, ultra=lvl>=30, mixed=lvl>=10&&lvl<20, tpq=ultra?8:hard?10:12;
+   const theme=THEMES.find(t=>t.id===tid)||THEMES[0];
+-  const hard=lvl>=20;const tpq=hard?10:12;
+-
+-  useEffect(()=>{save({hs,tp,tid,lvl,xp,soundOn})},[hs,tp,tid,lvl,xp,soundOn]);
+-  useEffect(()=>{document.body.style.background=theme.bg},[theme]);
+-  useEffect(()=>{sfx.enabled=soundOn},[soundOn]);
+-
+-  // Ambient ping during game
+-  useEffect(()=>{
+-    if(screen==='game'&&cat&&cat!=='Mixed'){
+-      ambRef.current=setInterval(()=>sfx.ambientPing(cat),4000+Math.random()*3000);
+-      return()=>clearInterval(ambRef.current);
+-    }else{clearInterval(ambRef.current);}
+-  },[screen,cat]);
+-
+-  const getPool=useCallback(c=>{
+-    if(hard)return[...(QH[c]||[]),...(QE[c]||[])];return QE[c]||[];
+-  },[hard]);
+-
+-  const addXp=useCallback(amt=>{
+-    setXp(prev=>{
+-      let nx=prev+amt,nl=lvl,ul=[];
+-      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);ul=[...ul,...u];}
+-      if(nl>lvl){setLvl(nl);setSlu(true);sfx.levelUp();if(ul.length)setNu(ul);setTimeout(()=>{setSlu(false);setNu([])},3500);}
+-      return nx;
+-    });
+-  },[lvl]);
+-
+-  const startGame=useCallback(c=>{
+-    sfx.init();sfx.click();
+-    const isM=c==="Mixed";
+-    const pool=isM?CATS.flatMap(x=>getPool(x)).sort(()=>Math.random()-.5).slice(0,QPR):getPool(c).sort(()=>Math.random()-.5).slice(0,QPR);
+-    setCat(c);setQs(pool);setQi(0);setScore(0);setStk(0);setBstk(0);
+-    setCor(0);setSel(null);setSr(false);setMult(1);setAh([]);
+-    setCd(3);setScreen("countdown");setXpg(0);
+-  },[getPool]);
+-
+-  useEffect(()=>{
+-    if(screen!=="countdown")return;
+-    if(cd<=0){sfx.countdown(0);setScreen("game");setTl(tpq);return;}
+-    sfx.countdown(cd);
+-    const t=setTimeout(()=>setCd(c=>c-1),700);
+-    return()=>clearTimeout(t);
+-  },[screen,cd,tpq]);
+-
+-  useEffect(()=>{
+-    if(screen!=="game"||sr)return;
+-    if(tl<=0){handleAns(-1);return;}
+-    if(tl<=3)sfx.timerWarning();
+-    tr.current=setTimeout(()=>setTl(t=>t-1),1000);
+-    return()=>clearTimeout(tr.current);
+-  },[screen,tl,sr]);
+-
+-  const handleAns=idx=>{
+-    if(sr)return;
+-    clearTimeout(tr.current);
+-    setSel(idx);setSr(true);
+-    const ok=idx===qs[qi].a;
+-    setAh(p=>[...p,ok]);
+-    let ep=0;
+-    if(ok){
+-      sfx.correct();
+-      const ns=stk+1;setStk(ns);if(ns>bstk)setBstk(ns);
+-      const nm=ns>=5?3:ns>=3?2:1;setMult(nm);
+-      if(nm>1&&(ns===3||ns===5))sfx.multiplier();
+-      if(ns>1)sfx.streak(ns);
+-      const tb=Math.max(0,tl*5);ep=(100+tb)*nm;
+-      setScore(s=>s+ep);setCor(c=>c+1);
+-      const exn=10+(hard?5:0)+(nm>1?5:0);setXpg(p=>p+exn);
+-      setPp({pts:ep,mult:nm});
+-      clearTimeout(pr.current);pr.current=setTimeout(()=>setPp(null),1200);
+-    }else{sfx.wrong();setStk(0);setMult(1);}
+-
+-    setTimeout(()=>{
+-      if(qi+1>=qs.length){
+-        const fs=score+ep;if(fs>hs)setHs(fs);
+-        setTp(t=>t+1);
+-        addXp(xpg+(ok?10+(hard?5:0):0));
+-        sfx.gameOver(cor+(ok?1:0)>=7);
+-        setScreen("result");
+-      }else{setQi(i=>i+1);setSel(null);setSr(false);setTl(tpq);}
+-    },1400);
+-  };
+-
+-  const cQ=qs[qi];
+-  const catCol=cat&&CC[cat]?CC[cat]:theme.accent;
+-  const xpN=xpFor(lvl);const xpP=Math.min((xp/xpN)*100,100);
+-  const lt=TITLES[Math.min(lvl-1,TITLES.length-1)];
+-
+-  const Btn=({children,onClick,style:s,...p})=><button onClick={e=>{sfx.init();sfx.click();onClick?.(e)}} {...p}
+-    style={{...s,fontFamily:"'Outfit',sans-serif"}}>{children}</button>;
+-
+-  const SoundToggle=()=><button onClick={()=>{sfx.init();setSoundOn(p=>!p);sfx.click()}} style={{
+-    position:'fixed',top:16,right:16,zIndex:90,background:theme.cardBg,border:`1px solid ${theme.border}`,
+-    borderRadius:10,width:40,height:40,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
+-    fontSize:18,transition:'all .2s',fontFamily:"'Outfit',sans-serif",
+-  }}>{soundOn?'🔊':'🔇'}</button>;
+-
+-  const ThemeShop=()=>(
+-    <div style={{paddingTop:32,animation:"fadeUp .5s ease"}}>
+-      <div style={{display:"flex",alignItems:"center",marginBottom:28}}>
+-        <Btn onClick={()=>setShop(false)} style={{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontSize:14,padding:"8px 0"}}>← Back</Btn>
+-        <h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}}>Themes</h2>
+-      </div>
+-      <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}}>
+-        <div style={{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}}>{theme.emoji}</div>
+-        <div><div style={{fontSize:14,fontWeight:700,color:theme.textPrimary}}>Current: {theme.name}</div>
+-        <div style={{fontSize:12,color:theme.textSecondary}}>Level {lvl} — {lt}</div></div>
+-      </div>
+-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+-        {THEMES.map((t,i)=>{
+-          const ul=t.free||lvl>=t.unlockLevel;const ac=t.id===tid;
+-          return <Btn key={t.id} onClick={()=>{if(ul){setTid(t.id);sfx.themeSelect();}}} style={{
+-            background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,
+-            borderRadius:14,padding:"16px 18px",cursor:ul?"pointer":"default",display:"flex",alignItems:"center",gap:14,
+-            width:"100%",textAlign:"left",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
+-          }}>
+-            <div style={{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}}>
+-              <div style={{position:"absolute",bottom:4,right:4,fontSize:16}}>{t.emoji}</div></div>
+-            <div style={{flex:1}}>
+-              <div style={{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}}>{t.name}{ac&&<span style={{marginLeft:8,fontSize:11,color:t.accent}}>ACTIVE</span>}</div>
+-              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{t.free?"Free":ul?"✓ Unlocked":`🔒 Level ${t.unlockLevel}`}</div>
+-            </div>
+-            {!ul&&<div style={{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}}>Lv.{t.unlockLevel}</div>}
+-            {ul&&!ac&&<div style={{fontSize:12,fontWeight:700,color:t.accent}}>SELECT</div>}
+-          </Btn>;
+-        })}
+-      </div>
+-    </div>
+-  );
+-
+-  return(
+-    <div style={{minHeight:"100vh",background:theme.bg,color:theme.textPrimary,fontFamily:"'Outfit',sans-serif",position:"relative",overflow:"hidden"}}>
+-      <div style={{position:"fixed",inset:0,background:theme.gradient,pointerEvents:"none",animation:"glowPulse 4s ease-in-out infinite"}}/>
+-      <SoundToggle/>
+-
+-      {/* Category animated background during game */}
+-      {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol} bg={theme.bg}/>}
+-
+-      <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
+-
+-      {/* LEVEL UP */}
+-      {slu&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:100,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+-        <div style={{animation:"levelUp .6s ease",textAlign:"center"}}>
+-          <div style={{fontSize:16,color:theme.accent,letterSpacing:4,textTransform:"uppercase",marginBottom:8}}>LEVEL UP!</div>
+-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{lvl}</div>
+-          <div style={{fontSize:18,color:theme.textSecondary,marginTop:8,fontWeight:600}}>{lt}</div>
+-          {lvl===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
+-          {nu.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
+-            <span style={{fontSize:24}}>{t.emoji}</span><div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div></div>)}
+-        </div>
+-      </div>}
+-
+-      {shop&&screen==="menu"&&<ThemeShop/>}
+-
+-      {/* MENU */}
+-      {screen==="menu"&&!shop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
+-        <div style={{textAlign:"center",marginBottom:12}}>
+-          <div style={{fontSize:13,letterSpacing:6,color:theme.accent,fontWeight:600,textTransform:"uppercase",marginBottom:10}}>⚡ Quiz</div>
+-          <h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:52,margin:0,background:`linear-gradient(135deg,${theme.textPrimary} 30%,${theme.accent} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.1}}>BLITZ</h1>
+-          <div style={{fontSize:11,color:theme.textSecondary,marginTop:6,letterSpacing:2}}>v2.0 — Sound & Visuals</div>
+-        </div>
+-
+-        <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:8,border:`1px solid ${theme.border}`}}>
+-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+-            <div style={{display:"flex",alignItems:"center",gap:8}}>
+-              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{lvl}</div>
+-              <div><div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div><div style={{fontSize:11,color:theme.textSecondary}}>Level {lvl}</div></div>
+-            </div>
+-            <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
+-          </div>
+-          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+-            <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s"}}/>
+-          </div>
+-          {hard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE ACTIVE</div>}
+-        </div>
+-
+-        <div style={{display:"flex",gap:8,marginBottom:20}}>
+-          {tp>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
+-            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{hs.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
+-            <div style={{width:1,background:theme.border}}/><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{tp}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
+-          </div>}
+-          <Btn onClick={()=>setShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:tp>0?"column":"row",alignItems:"center",justifyContent:"center",gap:tp>0?4:10,minWidth:tp>0?72:"100%",transition:"all .2s"}}>
+-            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:tp>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
+-          </Btn>
+-        </div>
+-
+-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+-          {CATS.map((c,i)=><Btn key={c} onClick={()=>startGame(c)} style={{
+-            background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",
+-            cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,
+-            transition:"all .25s",width:"100%",textAlign:"left",
+-          }}
+-            onMouseEnter={e=>{sfx.init();sfx.hover();e.currentTarget.style.borderColor=CC[c]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
+-            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}
+-          >
+-            <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CC[c]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CI[c]}</div>
+-            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{c}</div><div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(c).length} questions{hard&&" • Hard"}</div></div>
+-            <div style={{color:CC[c],fontSize:13,fontWeight:600}}>PLAY →</div>
+-          </Btn>)}
+-        </div>
+-
+-        <Btn onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
+-          onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
+-        >🔀 MIXED BLITZ — All Categories</Btn>
+-      </div>}
+-
+-      {/* COUNTDOWN */}
+-      {screen==="countdown"&&<div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+-        <div style={{fontSize:14,color:catCol,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CI[cat]||"🔀"} {cat}{hard&&" • HARD"}</div>
+-        {cd>0?<div key={cd} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:catCol,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${catCol}44`}}>{cd}</div>
+-        :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:catCol,animation:"countIn .5s ease",textShadow:`0 0 40px ${catCol}44`}}>GO!</div>}
+-      </div>}
+-
+-      {/* GAME */}
+-      {screen==="game"&&cQ&&<div style={{paddingTop:24}}>
+-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+-          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:catCol,fontWeight:700}}>{qi+1}</span> / {qs.length}{hard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
+-          <div style={{fontSize:15,fontWeight:800,color:theme.textPrimary}}>{score.toLocaleString()}<span style={{fontSize:11,color:theme.textSecondary,marginLeft:4}}>pts</span></div>
+-        </div>
+-        <div style={{display:"flex",gap:4,marginBottom:20}}>
+-          {qs.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<qi?(ah[i]?theme.accent:"#FF4444"):i===qi?catCol+"44":theme.border,transition:"background .3s"}}/>)}
+-        </div>
+-        <div style={{position:"relative",marginBottom:24}}>
+-          <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+-            <div style={{height:"100%",borderRadius:3,width:`${(tl/tpq)*100}%`,background:tl<=3?"linear-gradient(90deg,#FF4444,#FF6B6B)":`linear-gradient(90deg,${catCol},${catCol}88)`,transition:"width 1s linear,background .3s",...(tl<=3?{animation:"timerPulse .5s ease infinite"}:{})}}/>
+-          </div>
+-          <div style={{position:"absolute",right:0,top:-24,fontSize:18,fontWeight:800,color:tl<=3?"#FF4444":catCol,fontFamily:"'Dela Gothic One',cursive",...(tl<=3?{animation:"pulse .5s ease infinite"}:{})}}>{tl}s</div>
+-        </div>
+-        {stk>0&&<div key={stk} style={{display:"flex",justifyContent:"center",marginBottom:16,animation:"streakPop .4s ease"}}>
+-          <div style={{background:mult>=3?"linear-gradient(135deg,#FF6B6B22,#FFE66D22)":mult>=2?catCol+"15":theme.border,border:`1px solid ${mult>=3?"#FFE66D44":mult>=2?catCol+"33":theme.border}`,borderRadius:20,padding:"6px 16px",display:"flex",alignItems:"center",gap:8}}>
+-            <span style={{fontSize:14}}>🔥</span><span style={{fontSize:13,fontWeight:700,color:mult>=3?"#FFE66D":catCol}}>{stk} streak</span>
+-            {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
+-          </div>
+-        </div>}
+-        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,
+-          boxShadow:`0 0 30px ${catCol}11, inset 0 1px 0 ${theme.textPrimary}08`}}>
+-          <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
+-        </div>
+-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+-          {cQ.opts.map((opt,i)=>{
+-            const isCA=i===cQ.a,isSel=sel===i,wasW=sr&&isSel&&!isCA,shC=sr&&isCA;
+-            const lb=["A","B","C","D"];
+-            let bg=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`,bd=theme.border,tc=theme.textPrimary,an="";
+-            if(shC){bg=theme.accent+"20";bd=theme.accent+"55";tc=theme.accent;}
+-            if(wasW){bg="#FF444420";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
+-            return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
+-              background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
+-              cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
+-              fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
+-              animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
+-              boxShadow:`0 2px 12px ${theme.bg}88`,
+-            }}
+-              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"55";e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardHover}F5,${theme.cardHover}EE)`;e.currentTarget.style.boxShadow=`0 4px 20px ${catCol}15`;}}}
+-              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}
+-            >
+-              <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
+-                {shC?"✓":wasW?"✗":lb[i]}
+-              </div><span>{opt}</span>
+-            </button>;
+-          })}
+-        </div>
+-        {pp&&<div key={score} style={{position:"fixed",top:"36%",left:"50%",transform:"translateX(-50%)",animation:"slideDown .4s ease,fadeUp .3s ease 1s reverse forwards",textAlign:"center",pointerEvents:"none",zIndex:50}}>
+-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:36,color:catCol,textShadow:`0 0 30px ${catCol}66`}}>+{pp.pts}</div>
+-          {pp.mult>1&&<div style={{fontSize:14,color:"#FFE66D",fontWeight:700,marginTop:4}}>×{pp.mult} MULTIPLIER</div>}
+-        </div>}
+-      </div>}
+-
+-      {/* RESULT */}
+-      {screen==="result"&&<div style={{paddingTop:48,paddingBottom:40,animation:"fadeUp .6s ease"}}>
+-        {cor>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[catCol,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
+-        <div style={{textAlign:"center",position:"relative",zIndex:1}}>
+-          <div style={{fontSize:14,color:theme.textSecondary,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Final Score</div>
+-          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${catCol})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
+-          {score>=hs&&tp>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
+-          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CI[cat]||"🔀"} {cat}{hard&&" • Hard"}</div>
+-
+-          <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:20,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
+-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+-              <span style={{fontSize:13,color:theme.textSecondary}}>Level {lvl} — {lt}</span>
+-              <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpg} XP</span>
+-            </div>
+-            <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
+-              <div style={{width:`${(xp/xpFor(lvl))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
+-            </div>
+-            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(lvl)} XP to next</div>
+-          </div>
+-
+-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+-            {[{l:"Correct",v:`${cor}/${qs.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((cor/qs.length)*100)}%`,c:catCol},{l:"Best Streak",v:bstk,c:"#FFE66D"},{l:"Top Mult",v:`×${bstk>=5?3:bstk>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
+-              <div key={i} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,padding:"18px 14px",animation:`fadeUp .4s ease ${.2+i*.06}s both`}}>
+-                <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Dela Gothic One',cursive"}}>{s.v}</div>
+-                <div style={{fontSize:11,color:theme.textSecondary,marginTop:4,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
+-              </div>
+-            )}
+-          </div>
+-          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24,animation:"fadeUp .5s ease .45s both"}}>
+-            {ah.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
+-          </div>
+-          <div style={{fontSize:15,color:theme.textSecondary,marginBottom:28,lineHeight:1.6,animation:"fadeUp .5s ease .5s both"}}>
+-            {cor>=9?"🏆 Incredible! Absolutely crushed it!":cor>=7?"🎉 Great job! You know your stuff!":cor>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
+-          </div>
+-          <div style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeUp .5s ease .55s both"}}>
+-            <Btn onClick={()=>startGame(cat)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${catCol},${catCol}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
+-              onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
+-            >Play Again — {cat}</Btn>
+-            <Btn onClick={()=>{setScreen("menu");setShop(false);}} style={{width:"100%",padding:"16px 24px",background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:15,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+-              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.textSecondary;e.currentTarget.style.color=theme.textPrimary;}}
+-              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
+-            >← Back to Categories</Btn>
+-            <Btn onClick={()=>{
+-              const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${lvl} ${lt}. Can you beat me? ${window.location.href}`;
+-              if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
+-              else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied! Share it 🎉")).catch(()=>{})}
+-            }} style={{width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
+-              onMouseEnter={e=>{e.currentTarget.style.borderColor=theme.accent;e.currentTarget.style.color=theme.accent;}}
+-              onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
+-            >📤 Share Score</Btn>
+-          </div>
+-        </div>
+-      </div>}
+-
+-      </div>
+-    </div>
+-  );
++  useEffect(()=>save({hs,tp,tid,lvl,xp,soundOn,coins,unlockedTrivia,unlockedThemes,slLastPlay,slWins,slLosses,perfectTens}),[hs,tp,tid,lvl,xp,soundOn,coins,unlockedTrivia,unlockedThemes,slLastPlay,slWins,slLosses,perfectTens]);
++  const gainXp=v=>{let nx=xp+v,nl=lvl;while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;}setXp(nx);setLvl(nl);};
++  const getPool=c=>{if(ultra)return baseHard[c];if(hard)return [...baseEasy[c],...baseHard[c]];if(mixed)return [...baseEasy[c],...baseHard[c].slice(0,8)];return baseEasy[c];};
++  const startGame=c=>{const pool=(c==='Mixed'?CATS.flatMap(k=>getPool(k)):getPool(c)).sort(()=>Math.random()-.5).slice(0,QPR);setCat(c);setQs(pool);setQi(0);setScore(0);setCor(0);setSel(null);setSr(false);setXpg(0);setCd(3);setScreen('countdown');};
++  useEffect(()=>{if(screen!=='countdown')return;if(cd<=0){setScreen('game');setTl(tpq);return;}const t=setTimeout(()=>setCd(v=>v-1),700);return()=>clearTimeout(t);},[screen,cd,tpq]);
++  useEffect(()=>{if(screen!=='game'||sr)return;if(tl<=0){handleAns(-1);return;}tr.current=setTimeout(()=>setTl(t=>t-1),1000);return()=>clearTimeout(tr.current);},[screen,tl,sr]);
++  const handleAns=idx=>{if(sr)return;clearTimeout(tr.current);setSel(idx);setSr(true);const ok=idx===qs[qi].a;if(ok){setCor(c=>c+1);setScore(s=>s+100+tl*5);setXpg(x=>x+10+(hard?5:0));}setTimeout(()=>{if(qi+1>=qs.length){const nc=cor+(ok?1:0),fs=score+(ok?(100+tl*5):0);if(fs>hs)setHs(fs);setTp(t=>t+1);gainXp(xpg+(ok?10:0));setScreen('result');if(nc===QPR){setCoins(c=>c+50);setPerfectTens(p=>({...p,[cat]:(p[cat]||0)+1}));}}else{setQi(i=>i+1);setTl(tpq);setSel(null);setSr(false);}},900);};
++  const cooldown=Math.max(0,COOLDOWN_MS-(Date.now()-slLastPlay));const canPlaySnake=cooldown<=0;
++  useEffect(()=>{if(cooldown<=0)return;const t=setInterval(()=>setSlLastPlay(v=>v),1000);return()=>clearInterval(t);},[slLastPlay]);
++  const buyTheme=t=>{const price=THEME_PRICES[t.id]||0;if(coins>=price){setCoins(c=>c-price);setUnlockedThemes(u=>[...new Set([...u,t.id])]);setTid(t.id);}};
++  const unlockByLevel=t=>t.free||lvl>=t.unlockLevel||unlockedThemes.includes(t.id);
++  const openTrivia=()=>{const list=TRIVIA[cat]||[];if(!list.length)return;const chosen=list[Math.floor(Math.random()*list.length)];setTrivia(chosen);setShowTrivia(true);if(!unlockedTrivia.includes(chosen.id))setUnlockedTrivia(u=>[...u,chosen.id]);gainXp(lvl*20);};
++  const onSnakeFinish=(winner,aiPos)=>{setSlLastPlay(Date.now());setShowSnake(false);const reward=winner==='player'?(aiPos<50?200:100+Math.max(0,Math.floor((100-aiPos)/2))):20;setCoins(c=>c+reward);winner==='player'?setSlWins(w=>w+1):setSlLosses(l=>l+1);};
++  const Btn=({children,...p})=><button {...p} style={{fontFamily:"'Outfit',sans-serif",...p.style}}>{children}</button>;
++  return <div style={{minHeight:'100vh',background:theme.bg,color:theme.textPrimary,paddingBottom:24}}><div style={{maxWidth:460,margin:'0 auto',padding:'18px 16px',position:'relative'}}>{showSnake&&<SnakeLadderGame theme={theme} onClose={()=>setShowSnake(false)} onFinish={onSnakeFinish}/>} {showTrivia&&trivia&&<TriviaReward theme={theme} category={cat} content={trivia} xpBonus={lvl*20} coinBonus={50} onClose={()=>setShowTrivia(false)}/>} {screen==='menu'&&!shop&&<div><h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:46}}>⚡ QUIZ BLITZ</h1><div style={{display:'flex',justifyContent:'space-between',marginTop:6,color:theme.textSecondary}}><span>Level {lvl} • {TITLES[Math.min(lvl-1,TITLES.length-1)]}</span><span>💰 {coins}</span></div><div style={{height:6,background:theme.border,borderRadius:4,marginTop:8}}><div style={{height:'100%',width:`${Math.min(100,(xp/xpFor(lvl))*100)}%`,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`}}/></div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14}}><Btn onClick={()=>setShop(true)} style={{padding:14,borderRadius:12,border:`1px solid ${theme.border}`,background:theme.cardBg,color:theme.textPrimary}}>🎨 Themes</Btn><Btn onClick={()=>canPlaySnake&&setShowSnake(true)} style={{padding:14,borderRadius:12,border:`1px solid ${theme.border}`,background:theme.cardBg,color:theme.textPrimary,opacity:canPlaySnake?1:.5}}>🎲 Snake & Ladder<br/><small>{canPlaySnake?'Ready':'⏰ '+Math.floor(cooldown/60000)+':'+String(Math.floor((cooldown%60000)/1000)).padStart(2,'0')}</small></Btn></div><div style={{marginTop:14,display:'flex',flexDirection:'column',gap:8}}>{CATS.map(c=><Btn key={c} onClick={()=>startGame(c)} style={{textAlign:'left',padding:14,borderRadius:12,border:`1px solid ${theme.border}`,background:theme.cardBg,color:theme.textPrimary}}>{CI[c]} {c} <span style={{float:'right'}}>PLAY</span></Btn>)}<Btn onClick={()=>startGame('Mixed')} style={{padding:14,border:'none',borderRadius:12,background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,color:theme.bg,fontWeight:800}}>🔀 MIXED BLITZ</Btn></div></div>} {shop&&<div><Btn onClick={()=>setShop(false)} style={{background:'none',border:'none',color:theme.textSecondary}}>← Back</Btn><h2 style={{fontFamily:"'Dela Gothic One',cursive",margin:'8px 0'}}>Theme Shop</h2>{THEMES.map(t=>{const unlocked=unlockByLevel(t),active=t.id===tid,price=THEME_PRICES[t.id];return <div key={t.id} style={{background:theme.cardBg,border:`1px solid ${active?t.accent:theme.border}`,borderRadius:12,padding:12,marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between'}}><b>{t.emoji} {t.name}</b>{active&&<span style={{color:t.accent}}>ACTIVE</span>}</div><div style={{fontSize:12,color:theme.textSecondary,margin:'4px 0 8px'}}>{t.free?'Free':`Unlock at Lv ${t.unlockLevel} or 💰 ${price}`}</div><div style={{display:'flex',gap:8}}>{unlocked?<Btn onClick={()=>setTid(t.id)} style={{padding:'6px 10px'}}>Select</Btn>:<Btn disabled={coins<(price||0)} onClick={()=>buyTheme(t)} style={{padding:'6px 10px'}}>Buy ({price})</Btn>}</div></div>})}</div>} {screen==='countdown'&&<div style={{paddingTop:100,textAlign:'center',fontSize:80,fontFamily:"'Dela Gothic One',cursive"}}>{cd>0?cd:'GO!'}</div>} {screen==='game'&&<div style={{paddingTop:14}}>{cat&&cat!=='Mixed'&&<CategoryBg category={cat} color={CC[cat]} bg={theme.bg}/>}<div style={{position:'relative',zIndex:2,background:'rgba(0,0,0,0.35)',border:`1px solid ${theme.border}`,padding:12,borderRadius:12}}><div style={{display:'flex',justifyContent:'space-between',fontSize:13,color:theme.textSecondary}}><span>{cat} • Q {qi+1}/{qs.length}</span><span>⏱ {tl}s</span></div><div style={{marginTop:10,fontWeight:700,fontSize:20,lineHeight:1.4}}>{qs[qi]?.q}</div><div style={{marginTop:12,display:'grid',gap:8}}>{qs[qi]?.opts.map((o,i)=><Btn key={i} onClick={()=>handleAns(i)} disabled={sr} style={{textAlign:'left',padding:12,borderRadius:10,border:`1px solid ${theme.border}`,background:sel===i?(i===qs[qi].a?'#00E5A022':'#FF444422'):theme.cardBg,color:theme.textPrimary}}>{String.fromCharCode(65+i)}. {o}</Btn>)}</div></div></div>} {screen==='result'&&<div style={{paddingTop:30}}><h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:42}}>{score}</h2><div style={{color:theme.textSecondary,marginTop:4}}>{cat} • Correct {cor}/{qs.length}</div><div style={{marginTop:10,color:theme.textSecondary}}>+{xpg} XP • 💰 {coins}</div>{cor===qs.length&&<div style={{marginTop:12,padding:12,border:`1px solid ${theme.accent}`,borderRadius:10,background:theme.cardBg}}><div>🏆 PERFECT 10! Bonus unlocked.</div><Btn onClick={openTrivia} style={{marginTop:8,padding:'8px 12px'}}>UNLOCK TRIVIA PAGE</Btn></div>}<div style={{display:'grid',gap:8,marginTop:14}}><Btn onClick={()=>startGame(cat)} style={{padding:12,border:'none',borderRadius:10,background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,color:theme.bg,fontWeight:800}}>Play Again</Btn><Btn onClick={()=>setScreen('menu')} style={{padding:12,borderRadius:10}}>Back to Menu</Btn></div></div>}<button onClick={()=>setSoundOn(s=>!s)} style={{position:'fixed',top:12,right:12,width:40,height:40,borderRadius:10,border:`1px solid ${theme.border}`,background:theme.cardBg,color:theme.textPrimary}}>{soundOn?'🔊':'🔇'}</button></div></div>;
+ }
+ 
+ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("/sw.js").catch(()=>{})});}
+ </script>
+ </body>
+ </html>
