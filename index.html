@@ -35,20 +35,12 @@ button{font-family:'Outfit',sans-serif;outline:none}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 @keyframes orbit{0%{transform:rotate(0deg) translateX(var(--r)) rotate(0deg)}100%{transform:rotate(360deg) translateX(var(--r)) rotate(-360deg)}}
 @keyframes drift{0%{transform:translate(0,0)}25%{transform:translate(10px,-15px)}50%{transform:translate(-5px,-25px)}75%{transform:translate(-15px,-10px)}100%{transform:translate(0,0)}}
-@keyframes binaryFall{0%{transform:translateY(-20px);opacity:0}10%{opacity:.8}90%{opacity:.8}100%{transform:translateY(calc(100vh + 20px));opacity:0}}
-@keyframes sparkle{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.3)}}
-@keyframes sandDrift{0%{transform:translateX(0) translateY(0);opacity:.7}100%{transform:translateX(60px) translateY(-30px);opacity:0}}
-@keyframes waveBob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-8px) scaleY(1.08)}}
+@keyframes binaryFall{0%{transform:translateY(-20px);opacity:0}10%{opacity:.6}90%{opacity:.6}100%{transform:translateY(calc(100vh + 20px));opacity:0}}
+@keyframes sparkle{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@keyframes sandDrift{0%{transform:translateX(0) translateY(0)}100%{transform:translateX(40px) translateY(20px);opacity:0}}
+@keyframes waveBob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-4px) scaleY(1.05)}}
 @keyframes filmRoll{0%{transform:translateY(0)}100%{transform:translateY(-200px)}}
-@keyframes circuitPulse{0%,100%{opacity:.2}50%{opacity:.7}}
-@keyframes nebula{0%{transform:scale(1) rotate(0deg);opacity:.3}50%{transform:scale(1.3) rotate(5deg);opacity:.5}100%{transform:scale(1) rotate(0deg);opacity:.3}}
-@keyframes aurora{0%{transform:translateX(-10%) skewX(-5deg);opacity:.4}50%{transform:translateX(10%) skewX(5deg);opacity:.6}100%{transform:translateX(-10%) skewX(-5deg);opacity:.4}}
-@keyframes torchFlicker{0%,100%{opacity:.6;transform:scaleY(1)}25%{opacity:.8;transform:scaleY(1.1)}50%{opacity:.5;transform:scaleY(.95)}75%{opacity:.9;transform:scaleY(1.05)}}
-@keyframes neonPulse{0%,100%{filter:brightness(1) blur(0px);opacity:.5}50%{filter:brightness(1.5) blur(1px);opacity:.8}}
-@keyframes dataStream{0%{transform:translateY(-100%);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(100vh);opacity:0}}
-@keyframes compassSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes starTwinkle{0%,100%{opacity:.1;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}}
-@keyframes waveFlow{0%{d:path('M0,50 Q100,20 200,50 T400,50')}50%{d:path('M0,50 Q100,80 200,50 T400,50')}100%{d:path('M0,50 Q100,20 200,50 T400,50')}}
+@keyframes circuitPulse{0%,100%{opacity:.15}50%{opacity:.5}}
 </style>
 </head>
 <body>
@@ -135,416 +127,199 @@ const sfx=new SoundEngine();
 // ═══════════════════════════════════════
 // ANIMATED BACKGROUNDS per CATEGORY
 // ═══════════════════════════════════════
-
-// Center vignette overlay so questions stay readable
-const CenterVignette=({bg})=><div style={{position:'absolute',inset:0,
-  background:`radial-gradient(ellipse at 50% 45%,${bg}EE 0%,${bg}CC 30%,${bg}66 60%,transparent 85%)`,
-  pointerEvents:'none',zIndex:2}}/>;
-
-const ScienceBg=({color,bg})=>{
-  const particles=useMemo(()=>Array.from({length:30},(_,i)=>({
-    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,
-    dur:3+Math.random()*6,delay:Math.random()*5,hue:Math.random()>.5?0:120,
+const ScienceBg=({color})=>{
+  const atoms=useMemo(()=>Array.from({length:6},(_,i)=>({
+    x:15+Math.random()*70,y:10+Math.random()*80,size:30+Math.random()*40,
+    dur:8+Math.random()*6,delay:i*1.2,orbitR:8+Math.random()*12,
   })),[]);
-  const molecules=useMemo(()=>Array.from({length:5},(_,i)=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,size:60+Math.random()*80,
-    dur:10+Math.random()*10,delay:i*2,
+  const connections=useMemo(()=>Array.from({length:8},()=>({
+    x1:Math.random()*100,y1:Math.random()*100,x2:Math.random()*100,y2:Math.random()*100,
+    dur:6+Math.random()*8,delay:Math.random()*5,
   })),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Nebula-like colored blobs */}
-    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'45%',height:'45%',
-      background:'radial-gradient(circle,#00E5A033 0%,#00E5A011 40%,transparent 70%)',
-      animation:'nebula 12s ease-in-out infinite',borderRadius:'50%'}}/>
-    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'50%',height:'50%',
-      background:'radial-gradient(circle,#00B4D833 0%,#00B4D811 40%,transparent 70%)',
-      animation:'nebula 15s ease-in-out 3s infinite',borderRadius:'50%'}}/>
-    <div style={{position:'absolute',top:'30%',right:'0%',width:'35%',height:'35%',
-      background:'radial-gradient(circle,#7B68EE22 0%,transparent 60%)',
-      animation:'nebula 10s ease-in-out 6s infinite',borderRadius:'50%'}}/>
-
-    {/* Glowing molecule structures */}
-    {molecules.map((m,i)=><div key={i} style={{
-      position:'absolute',left:m.x+'%',top:m.y+'%',width:m.size,height:m.size,
-      animation:`drift ${m.dur}s ease-in-out ${m.delay}s infinite`,
+    <svg width="100%" height="100%" style={{position:'absolute',opacity:0.12}}>
+      {connections.map((c,i)=><line key={i} x1={c.x1+'%'} y1={c.y1+'%'} x2={c.x2+'%'} y2={c.y2+'%'}
+        stroke={color} strokeWidth="0.5" opacity="0.4" strokeDasharray="4 4">
+        <animate attributeName="opacity" values="0.1;0.5;0.1" dur={c.dur+'s'} begin={c.delay+'s'} repeatCount="indefinite"/>
+      </line>)}
+    </svg>
+    {atoms.map((a,i)=><div key={i} style={{
+      position:'absolute',left:a.x+'%',top:a.y+'%',width:a.size,height:a.size,
+      border:`1px solid ${color}22`,borderRadius:'50%',animation:`drift ${a.dur}s ease-in-out ${a.delay}s infinite`,
     }}>
-      <svg width={m.size} height={m.size} viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="4" fill={color} opacity="0.5">
-          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        <circle cx="50" cy="50" r="20" fill="none" stroke={color} strokeWidth="0.5" opacity="0.2"/>
-        <circle cx="50" cy="50" r="35" fill="none" stroke={color} strokeWidth="0.3" opacity="0.12"/>
-        {[0,60,120,180,240,300].map((angle,j)=>{
-          const rad=angle*Math.PI/180;const r2=20;
-          const cx2=50+Math.cos(rad)*r2;const cy2=50+Math.sin(rad)*r2;
-          return <g key={j}>
-            <line x1="50" y1="50" x2={cx2} y2={cy2} stroke={color} strokeWidth="0.5" opacity="0.2"/>
-            <circle cx={cx2} cy={cy2} r="2" fill={color} opacity="0.4">
-              <animate attributeName="opacity" values="0.2;0.6;0.2" dur={1.5+j*0.3+'s'} repeatCount="indefinite"/>
-            </circle>
-          </g>;
-        })}
-        <circle cx="30" cy="30" r="2" fill="#00E5A0" opacity="0.6" style={{['--r']:'35px'}}>
-          <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur={4+i+'s'} repeatCount="indefinite"/>
-        </circle>
-      </svg>
+      <div style={{position:'absolute',width:6,height:6,borderRadius:'50%',background:color+'33',
+        left:'50%',top:'50%',transform:'translate(-50%,-50%)'}}/>
+      <div style={{position:'absolute',width:4,height:4,borderRadius:'50%',background:color+'44',
+        animation:`orbit ${3+i}s linear infinite`,['--r']:a.size/2.5+'px',left:'50%',top:'50%'}}/>
     </div>)}
-
-    {/* DNA Double Helix - left side */}
-    <svg width="80" height="500" style={{position:'absolute',left:'2%',top:'5%',opacity:0.25}}>
-      {Array.from({length:25},(_,i)=>{
-        const y=i*20;const phase=i*0.7;
-        const x1=20+Math.sin(phase)*18;const x2=60-Math.sin(phase)*18;
-        const colors=['#00E5A0','#00B4D8','#A78BFA'];
-        return <g key={i}>
-          <circle cx={x1} cy={y} r="3" fill={colors[i%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          <circle cx={x2} cy={y} r="3" fill={colors[(i+1)%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2.5+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke="white" strokeWidth="0.6" opacity="0.15"/>}
+    {/* DNA Helix hint */}
+    <svg width="60" height="300" style={{position:'absolute',right:'8%',top:'15%',opacity:0.08}}>
+      {Array.from({length:15},(_,i)=>{
+        const y=i*20;const x1=15+Math.sin(i*0.8)*12;const x2=45-Math.sin(i*0.8)*12;
+        return <g key={i}><circle cx={x1} cy={y} r="2.5" fill={color}/>
+          <circle cx={x2} cy={y} r="2.5" fill={color}/>
+          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="0.8" opacity="0.6"/>}
         </g>;
       })}
     </svg>
+  </div>;
+};
 
-    {/* Floating particles */}
+const HistoryBg=({color})=>{
+  const particles=useMemo(()=>Array.from({length:20},()=>({
+    x:Math.random()*100,y:60+Math.random()*40,size:1+Math.random()*2,
+    dur:3+Math.random()*5,delay:Math.random()*4,
+  })),[]);
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
+    {/* Pyramids */}
+    <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax meet"
+      style={{position:'absolute',bottom:0,opacity:0.1}}>
+      <polygon points="80,280 140,160 200,280" fill={color} opacity="0.5"/>
+      <polygon points="160,280 240,120 320,280" fill={color} opacity="0.7"/>
+      <polygon points="260,280 310,180 360,280" fill={color} opacity="0.4"/>
+      {/* Ground line */}
+      <line x1="0" y1="280" x2="400" y2="280" stroke={color} strokeWidth="1" opacity="0.3"/>
+      {/* Stars */}
+      {Array.from({length:12},(_,i)=>
+        <circle key={i} cx={20+i*35} cy={30+Math.random()*80} r={0.8+Math.random()} fill={color} opacity="0.5">
+          <animate attributeName="opacity" values="0.2;0.8;0.2" dur={2+Math.random()*3+'s'} repeatCount="indefinite"/>
+        </circle>
+      )}
+    </svg>
+    {/* Floating sand particles */}
     {particles.map((p,i)=><div key={i} style={{
-      position:'absolute',left:p.x+'%',top:p.y+'%',width:p.size,height:p.size,
-      borderRadius:'50%',
-      background:p.hue===0?color:'#00B4D8',
-      boxShadow:`0 0 ${p.size*2}px ${p.hue===0?color:'#00B4D8'}44`,
-      animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
+      position:'absolute',left:p.x+'%',bottom:p.y+'%',width:p.size,height:p.size,
+      borderRadius:'50%',background:color+'44',
+      animation:`sandDrift ${p.dur}s linear ${p.delay}s infinite`,
     }}/>)}
-
-    <CenterVignette bg={bg}/>
-  </div>;
-};
-
-const HistoryBg=({color,bg})=>{
-  const embers=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,size:1.5+Math.random()*3,
-    dur:3+Math.random()*5,delay:Math.random()*6,
-  })),[]);
-  const stars=useMemo(()=>Array.from({length:20},()=>({
-    x:Math.random()*100,y:Math.random()*40,size:1+Math.random()*2,dur:2+Math.random()*4,delay:Math.random()*3,
-  })),[]);
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Warm sunset sky gradient at top */}
-    <div style={{position:'absolute',top:0,left:0,right:0,height:'50%',
-      background:'linear-gradient(180deg,#FF6B6B15 0%,#FFB34718 20%,#FF8C0010 40%,transparent 100%)'}}/>
-
-    {/* Stars twinkling */}
-    {stars.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:'50%',background:'#FFE4B5',
-      boxShadow:`0 0 ${s.size*3}px #FFE4B566`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
-    }}/>)}
-
-    {/* Pyramids - vibrant golden */}
-    <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMax meet"
-      style={{position:'absolute',bottom:0}}>
-      {/* Sky glow behind pyramids */}
-      <defs>
-        <linearGradient id="pyrGlow" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FF6B6B" stopOpacity="0"/>
-          <stop offset="70%" stopColor="#FF8C00" stopOpacity="0.08"/>
-          <stop offset="100%" stopColor="#FFB347" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFD700" stopOpacity="0.35"/>
-          <stop offset="100%" stopColor="#FF8C00" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace2" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFB347" stopOpacity="0.2"/>
-          <stop offset="100%" stopColor="#8B4513" stopOpacity="0.15"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="500" height="350" fill="url(#pyrGlow)"/>
-      {/* Main pyramid */}
-      <polygon points="200,100 310,300 90,300" fill="url(#pyrFace1)" stroke="#FFD70033" strokeWidth="0.5"/>
-      <polygon points="200,100 310,300 200,300" fill="url(#pyrFace2)"/>
-      {/* Second pyramid */}
-      <polygon points="350,160 440,300 260,300" fill="url(#pyrFace1)" opacity="0.7" stroke="#FFD70022" strokeWidth="0.5"/>
-      <polygon points="350,160 440,300 350,300" fill="url(#pyrFace2)" opacity="0.7"/>
-      {/* Small pyramid */}
-      <polygon points="80,220 130,300 30,300" fill="url(#pyrFace1)" opacity="0.5"/>
-      {/* Ground */}
-      <rect x="0" y="298" width="500" height="52" fill="#D2691E" opacity="0.08"/>
-      <line x1="0" y1="300" x2="500" y2="300" stroke="#FFD700" strokeWidth="0.5" opacity="0.2"/>
-    </svg>
-
-    {/* Torch flames on sides */}
-    <div style={{position:'absolute',left:'6%',bottom:'28%'}}>
-      <div style={{width:8,height:20,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.5s ease infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-    <div style={{position:'absolute',right:'6%',bottom:'25%'}}>
-      <div style={{width:8,height:22,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.8s ease 0.5s infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-
-    {/* Rising embers */}
-    {embers.map((e,i)=><div key={i} style={{
-      position:'absolute',left:e.x+'%',bottom:'-5%',width:e.size,height:e.size,
-      borderRadius:'50%',
-      background:i%3===0?'#FF6B6B':i%3===1?'#FFD700':'#FF8C00',
-      boxShadow:`0 0 ${e.size*3}px ${i%3===0?'#FF6B6B':'#FFD700'}44`,
-      animation:`sandDrift ${e.dur}s ease ${e.delay}s infinite`,
-    }}/>)}
-
-    {/* Hieroglyphs - more visible */}
-    <div style={{position:'absolute',left:'3%',top:'12%',fontSize:32,opacity:0.08,color:'#FFD700',
+    {/* Hieroglyph-style symbols */}
+    <div style={{position:'absolute',left:'5%',top:'20%',fontSize:24,opacity:0.04,
       animation:'float 8s ease-in-out infinite'}}>𓂀</div>
-    <div style={{position:'absolute',right:'5%',top:'20%',fontSize:26,opacity:0.07,color:'#FFB347',
+    <div style={{position:'absolute',right:'10%',top:'30%',fontSize:20,opacity:0.04,
       animation:'float 10s ease-in-out 2s infinite'}}>𓃭</div>
-    <div style={{position:'absolute',left:'15%',top:'5%',fontSize:22,opacity:0.06,color:'#FF8C00',
+    <div style={{position:'absolute',left:'20%',top:'10%',fontSize:18,opacity:0.03,
       animation:'float 12s ease-in-out 4s infinite'}}>𓅃</div>
-    <div style={{position:'absolute',right:'15%',top:'8%',fontSize:20,opacity:0.05,color:'#FFD700',
-      animation:'float 9s ease-in-out 1s infinite'}}>𓁹</div>
-
-    <CenterVignette bg={bg}/>
   </div>;
 };
 
-const GeographyBg=({color,bg})=>{
-  const pins=useMemo(()=>Array.from({length:10},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,dur:3+Math.random()*4,delay:Math.random()*4,
-  })),[]);
-  const waves=useMemo(()=>Array.from({length:4},(_,i)=>({
-    y:75+i*6,dur:3+i*0.8,delay:i*0.5,opacity:0.08-i*0.015,
+const GeographyBg=({color})=>{
+  const pins=useMemo(()=>Array.from({length:8},()=>({
+    x:10+Math.random()*80,y:10+Math.random()*80,dur:4+Math.random()*4,delay:Math.random()*3,
   })),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Aurora borealis at top */}
-    <div style={{position:'absolute',top:0,left:0,right:0,height:'35%',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:'-20%',left:'-10%',width:'60%',height:'150%',
-        background:'linear-gradient(135deg,#4ECDC433,#00B4D822,transparent)',
-        borderRadius:'50%',animation:'aurora 8s ease-in-out infinite'}}/>
-      <div style={{position:'absolute',top:'-10%',right:'-15%',width:'55%',height:'130%',
-        background:'linear-gradient(225deg,#34D39933,#4ECDC422,transparent)',
-        borderRadius:'50%',animation:'aurora 10s ease-in-out 2s infinite'}}/>
-      <div style={{position:'absolute',top:'0%',left:'20%',width:'40%',height:'100%',
-        background:'linear-gradient(180deg,#00E5A022,transparent)',
-        borderRadius:'50%',animation:'aurora 12s ease-in-out 4s infinite'}}/>
-    </div>
-
-    {/* Globe wireframe - more vivid */}
-    <svg width="350" height="350" viewBox="0 0 200 200"
-      style={{position:'absolute',right:'-8%',top:'8%',opacity:0.12}}>
-      <defs>
-        <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4ECDC4"/>
-          <stop offset="100%" stopColor="#00B4D8"/>
-        </linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="80" fill="none" stroke="url(#globeGrad)" strokeWidth="1.2"/>
-      <ellipse cx="100" cy="100" rx="80" ry="30" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
-      <ellipse cx="100" cy="100" rx="80" ry="55" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
-      <ellipse cx="100" cy="100" rx="30" ry="80" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
-      <ellipse cx="100" cy="100" rx="55" ry="80" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
-      <line x1="20" y1="100" x2="180" y2="100" stroke={color} strokeWidth="0.4" opacity="0.5"/>
-      <line x1="100" y1="20" x2="100" y2="180" stroke={color} strokeWidth="0.4" opacity="0.5"/>
-      <animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="50s" repeatCount="indefinite"/>
+    {/* Globe wireframe */}
+    <svg width="300" height="300" viewBox="0 0 200 200"
+      style={{position:'absolute',right:'-5%',top:'10%',opacity:0.06}}>
+      <circle cx="100" cy="100" r="80" fill="none" stroke={color} strokeWidth="0.8"/>
+      <ellipse cx="100" cy="100" rx="80" ry="30" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="80" ry="55" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="30" ry="80" fill="none" stroke={color} strokeWidth="0.5"/>
+      <ellipse cx="100" cy="100" rx="55" ry="80" fill="none" stroke={color} strokeWidth="0.5"/>
+      <line x1="20" y1="100" x2="180" y2="100" stroke={color} strokeWidth="0.5"/>
+      <line x1="100" y1="20" x2="100" y2="180" stroke={color} strokeWidth="0.5"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="60s" repeatCount="indefinite"/>
     </svg>
-
-    {/* Map pins - colored and glowing */}
+    {/* Map pins */}
     {pins.map((p,i)=><div key={i} style={{
       position:'absolute',left:p.x+'%',top:p.y+'%',animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
     }}>
-      <svg width="16" height="22" viewBox="0 0 12 16">
-        <path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z"
-          fill={i%3===0?'#4ECDC4':i%3===1?'#00B4D8':'#34D399'} opacity="0.35"/>
+      <svg width="12" height="16" viewBox="0 0 12 16" opacity="0.15">
+        <path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z" fill={color}/>
         <circle cx="6" cy="6" r="2" fill="white" opacity="0.5"/>
       </svg>
     </div>)}
-
-    {/* Ocean waves at bottom */}
-    <svg width="100%" height="120" style={{position:'absolute',bottom:0}}>
-      {waves.map((w,i)=><path key={i}
-        d={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-        fill="none" stroke={i%2===0?'#4ECDC4':'#00B4D8'} strokeWidth={1.5-i*0.2} opacity={w.opacity*3}>
-        <animate attributeName="d"
-          values={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${45+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-          dur={w.dur+'s'} repeatCount="indefinite"/>
-      </path>)}
+    {/* Wave lines at bottom */}
+    <svg width="100%" height="60" style={{position:'absolute',bottom:0,opacity:0.06}}>
+      <path d="M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30" fill="none" stroke={color} strokeWidth="1.5">
+        <animate attributeName="d" values="M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30;M0,30 Q50,50 100,30 T200,30 T300,30 T400,30 T500,30;M0,30 Q50,10 100,30 T200,30 T300,30 T400,30 T500,30" dur="4s" repeatCount="indefinite"/>
+      </path>
     </svg>
-
-    {/* Compass rose - subtle, bottom left */}
-    <svg width="60" height="60" viewBox="0 0 60 60" style={{position:'absolute',left:'5%',bottom:'18%',opacity:0.1}}>
-      <circle cx="30" cy="30" r="25" fill="none" stroke={color} strokeWidth="0.8"/>
-      <polygon points="30,8 33,26 30,22 27,26" fill={color} opacity="0.8"/>
-      <polygon points="30,52 33,34 30,38 27,34" fill={color} opacity="0.4"/>
-      <polygon points="8,30 26,27 22,30 26,33" fill={color} opacity="0.4"/>
-      <polygon points="52,30 34,27 38,30 34,33" fill={color} opacity="0.6"/>
-      <animateTransform attributeName="transform" type="rotate" values="0 30 30;360 30 30" dur="30s" repeatCount="indefinite"/>
-    </svg>
-
-    <CenterVignette bg={bg}/>
   </div>;
 };
 
-const PopCultureBg=({color,bg})=>{
-  const sparkles=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,
-    dur:1.5+Math.random()*3,delay:Math.random()*4,
-    color:['#FFE66D','#FF77A9','#A78BFA','#00E5FF','#FF6B6B'][Math.floor(Math.random()*5)],
+const PopCultureBg=({color})=>{
+  const stars=useMemo(()=>Array.from({length:15},()=>({
+    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*4,dur:2+Math.random()*4,delay:Math.random()*3,
   })),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Colorful spotlight beams */}
-    <div style={{position:'absolute',left:'10%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#FF77A920,#FF77A910,transparent 70%)',
-      transform:'rotate(-20deg)',transformOrigin:'bottom center',animation:'neonPulse 4s ease infinite'}}/>
-    <div style={{position:'absolute',right:'15%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#A78BFA20,#A78BFA10,transparent 70%)',
-      transform:'rotate(15deg)',transformOrigin:'bottom center',animation:'neonPulse 5s ease 1s infinite'}}/>
-    <div style={{position:'absolute',left:'45%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#FFE66D18,#FFE66D08,transparent 60%)',
-      transform:'rotate(-5deg)',transformOrigin:'bottom center',animation:'neonPulse 3.5s ease 2s infinite'}}/>
-    <div style={{position:'absolute',right:'35%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#00E5FF15,transparent 50%)',
-      transform:'rotate(8deg)',transformOrigin:'bottom center',animation:'neonPulse 4.5s ease 0.5s infinite'}}/>
-
-    {/* Colored glow orbs */}
-    <div style={{position:'absolute',top:'5%',left:'5%',width:'30%',height:'25%',
-      background:'radial-gradient(circle,#FF77A918 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 8s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',top:'15%',right:'5%',width:'25%',height:'25%',
-      background:'radial-gradient(circle,#A78BFA18 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 10s ease-in-out 3s infinite'}}/>
-    <div style={{position:'absolute',bottom:'15%',left:'10%',width:'25%',height:'20%',
-      background:'radial-gradient(circle,#FFE66D12 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 9s ease-in-out 5s infinite'}}/>
-
-    {/* Sparkle stars - multicolored */}
-    {sparkles.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:i%3===0?'50%':'2px',transform:i%3===2?'rotate(45deg)':'none',
-      background:s.color,boxShadow:`0 0 ${s.size*2}px ${s.color}66`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
+    {/* Spotlight beams */}
+    <div style={{position:'absolute',left:'20%',bottom:0,width:2,height:'100%',
+      background:`linear-gradient(to top,${color}08,transparent)`,transform:'rotate(-15deg)',transformOrigin:'bottom center'}}/>
+    <div style={{position:'absolute',right:'25%',bottom:0,width:2,height:'100%',
+      background:`linear-gradient(to top,${color}08,transparent)`,transform:'rotate(12deg)',transformOrigin:'bottom center'}}/>
+    {/* Stars */}
+    {stars.map((s,i)=><div key={i} style={{
+      position:'absolute',left:s.x+'%',top:s.y+'%',
+      width:s.size,height:s.size,
+      background:color,borderRadius:'50%',
+      animation:`sparkle ${s.dur}s ease ${s.delay}s infinite`,opacity:0.2,
     }}/>)}
-
-    {/* Film strip - left side, more vivid */}
-    <div style={{position:'absolute',left:'2%',top:'3%',opacity:0.08}}>
-      <svg width="35" height="260" viewBox="0 0 30 200">
+    {/* Film strip hint */}
+    <div style={{position:'absolute',left:'3%',top:'5%',opacity:0.04}}>
+      <svg width="30" height="200" viewBox="0 0 30 200">
         {Array.from({length:10},(_,i)=><g key={i}>
-          <rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke="#FFE66D" strokeWidth="1"/>
-          <rect x="2" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="2" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
+          <rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke={color} strokeWidth="0.8"/>
+          <rect x="2" y={i*20+2} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="2" y={i*20+12} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
+          <rect x="24" y={i*20+12} width="4" height="4" rx="0.5" fill={color} opacity="0.5"/>
         </g>)}
-        <animateTransform attributeName="transform" type="translate" values="0 0;0 -40;0 0" dur="6s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -40;0 0" dur="8s" repeatCount="indefinite"/>
       </svg>
     </div>
-
-    {/* Music notes */}
-    <div style={{position:'absolute',right:'5%',top:'10%',fontSize:34,opacity:0.08,color:'#FF77A9',
-      animation:'float 5s ease-in-out infinite'}}>♪</div>
-    <div style={{position:'absolute',right:'18%',top:'35%',fontSize:24,opacity:0.06,color:'#A78BFA',
-      animation:'float 7s ease-in-out 1.5s infinite'}}>♫</div>
-    <div style={{position:'absolute',left:'8%',bottom:'20%',fontSize:28,opacity:0.07,color:'#FFE66D',
-      animation:'float 6s ease-in-out 3s infinite'}}>♬</div>
-
-    {/* Star burst - bottom right */}
-    <svg width="80" height="80" viewBox="0 0 80 80" style={{position:'absolute',right:'8%',bottom:'12%',opacity:0.06}}>
-      {Array.from({length:8},(_,i)=>{
-        const angle=(i/8)*Math.PI*2;
-        return <line key={i} x1="40" y1="40" x2={40+Math.cos(angle)*35} y2={40+Math.sin(angle)*35}
-          stroke="#FFE66D" strokeWidth="1" opacity="0.8">
-          <animate attributeName="opacity" values="0.3;1;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </line>;
-      })}
-    </svg>
-
-    <CenterVignette bg={bg}/>
+    {/* Music note */}
+    <div style={{position:'absolute',right:'8%',top:'15%',fontSize:28,opacity:0.05,
+      animation:'float 6s ease-in-out infinite'}}>♪</div>
+    <div style={{position:'absolute',right:'15%',top:'45%',fontSize:20,opacity:0.04,
+      animation:'float 8s ease-in-out 2s infinite'}}>♫</div>
   </div>;
 };
 
-const TechBg=({color,bg})=>{
-  const binaryStreams=useMemo(()=>Array.from({length:15},(_,i)=>({
-    x:3+Math.random()*94,chars:Array.from({length:8},()=>Math.random()>.5?'1':'0').join(''),
-    dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*4,
-    color:['#7B68EE','#00E5FF','#E040FB','#00E5A0'][Math.floor(Math.random()*4)],
+const TechBg=({color})=>{
+  const binaryItems=useMemo(()=>Array.from({length:12},(_,i)=>({
+    x:5+Math.random()*90,char:Math.random()>.5?'1':'0',
+    dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*6,
   })),[]);
-  const nodes=useMemo(()=>Array.from({length:8},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,
+  const nodes=useMemo(()=>Array.from({length:6},()=>({
+    x:10+Math.random()*80,y:10+Math.random()*80,
   })),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Cyberpunk gradient glows */}
-    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'40%',height:'40%',
-      background:'radial-gradient(circle,#7B68EE22 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 10s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'45%',height:'45%',
-      background:'radial-gradient(circle,#00E5FF1A 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 12s ease-in-out 4s infinite'}}/>
-    <div style={{position:'absolute',top:'30%',left:'60%',width:'30%',height:'30%',
-      background:'radial-gradient(circle,#E040FB12 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 8s ease-in-out 2s infinite'}}/>
-
-    {/* Circuit board lines - glowing */}
-    <svg width="100%" height="100%" style={{position:'absolute'}}>
+    {/* Circuit board lines */}
+    <svg width="100%" height="100%" style={{position:'absolute',opacity:0.06}}>
       {nodes.map((n,i)=>{
         const next=nodes[(i+1)%nodes.length];
         const midX=(parseFloat(n.x)+parseFloat(next.x))/2;
-        const colors=['#7B68EE','#00E5FF','#E040FB','#00E5A0'];
         return <g key={i}>
           <path d={`M${n.x}% ${n.y}% L${midX}% ${n.y}% L${midX}% ${next.y}% L${next.x}% ${next.y}%`}
-            fill="none" stroke={colors[i%4]} strokeWidth="0.8" opacity="0.12">
-            <animate attributeName="opacity" values="0.05;0.2;0.05" dur={3+i*0.5+'s'} repeatCount="indefinite"/>
+            fill="none" stroke={color} strokeWidth="0.8">
+            <animate attributeName="opacity" values="0.2;0.6;0.2" dur={3+i+'s'} repeatCount="indefinite"/>
           </path>
-          <circle cx={n.x+'%'} cy={n.y+'%'} r="3" fill={colors[i%4]} opacity="0.3">
-            <animate attributeName="r" values="2;5;2" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.15;0.5;0.15" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
+          <circle cx={n.x+'%'} cy={n.y+'%'} r="3" fill={color} opacity="0.4">
+            <animate attributeName="r" values="2;4;2" dur={2+i*0.5+'s'} repeatCount="indefinite"/>
           </circle>
         </g>;
       })}
     </svg>
-
-    {/* Binary rain - colored */}
-    {binaryStreams.map((b,i)=><div key={i} style={{
-      position:'absolute',left:b.x+'%',top:'-5%',
-      fontSize:b.size,color:b.color,fontFamily:'monospace',fontWeight:700,
-      opacity:0.15,letterSpacing:2,writingMode:'vertical-lr',
-      animation:`dataStream ${b.dur}s linear ${b.delay}s infinite`,
-      textShadow:`0 0 8px ${b.color}44`,
-    }}>{b.chars}</div>)}
-
-    {/* Hex grid pattern - bottom */}
-    <svg width="200" height="100" viewBox="0 0 200 100"
-      style={{position:'absolute',right:'3%',bottom:'5%',opacity:0.05}}>
-      {Array.from({length:12},(_,i)=>{
-        const row=Math.floor(i/4);const col=i%4;
-        const cx=25+col*50+(row%2?25:0);const cy=25+row*30;
-        return <polygon key={i} points={[0,1,2,3,4,5].map(j=>{
-          const a=(j/6)*Math.PI*2-Math.PI/6;
-          return `${cx+15*Math.cos(a)},${cy+15*Math.sin(a)}`;
-        }).join(' ')} fill="none" stroke={color} strokeWidth="0.5">
-          <animate attributeName="opacity" values="0.3;0.8;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </polygon>;
-      })}
-    </svg>
-
-    {/* Terminal prompt */}
-    <div style={{position:'absolute',right:'4%',bottom:'12%',fontFamily:'monospace',fontSize:20,
-      opacity:0.06,color:'#00E5FF',animation:'pulse 2.5s ease infinite',
-      textShadow:'0 0 10px #00E5FF44'}}>&gt;_</div>
-
-    <CenterVignette bg={bg}/>
+    {/* Binary rain */}
+    {binaryItems.map((b,i)=><div key={i} style={{
+      position:'absolute',left:b.x+'%',top:-20,
+      fontSize:b.size,color:color,opacity:0.08,fontFamily:'monospace',fontWeight:700,
+      animation:`binaryFall ${b.dur}s linear ${b.delay}s infinite`,
+    }}>{b.char}</div>)}
+    {/* Terminal bracket */}
+    <div style={{position:'absolute',right:'6%',bottom:'15%',fontSize:36,opacity:0.04,
+      fontFamily:'monospace',animation:'pulse 3s ease infinite'}}>&gt;_</div>
   </div>;
 };
 
-const CategoryBg=({category,color,bg})=>{
+const CategoryBg=({category,color})=>{
   switch(category){
-    case 'Science':return <ScienceBg color={color} bg={bg}/>;
-    case 'History':return <HistoryBg color={color} bg={bg}/>;
-    case 'Geography':return <GeographyBg color={color} bg={bg}/>;
-    case 'Pop Culture':return <PopCultureBg color={color} bg={bg}/>;
-    case 'Tech':return <TechBg color={color} bg={bg}/>;
-    default:return <ScienceBg color={color} bg={bg}/>;
+    case 'Science':return <ScienceBg color={color}/>;
+    case 'History':return <HistoryBg color={color}/>;
+    case 'Geography':return <GeographyBg color={color}/>;
+    case 'Pop Culture':return <PopCultureBg color={color}/>;
+    case 'Tech':return <TechBg color={color}/>;
+    default:return <ScienceBg color={color}/>;
   }
 };
 
@@ -753,7 +528,7 @@ function App(){
       <SoundToggle/>
 
       {/* Category animated background during game */}
-      {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol} bg={theme.bg}/>}
+      {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol}/>}
 
       <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
 
@@ -851,26 +626,24 @@ function App(){
             {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
           </div>
         </div>}
-        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,
-          boxShadow:`0 0 30px ${catCol}11, inset 0 1px 0 ${theme.textPrimary}08`}}>
+        <div style={{animation:"scaleIn .35s ease",background:theme.cardBg+'DD',backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20}}>
           <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {cQ.opts.map((opt,i)=>{
             const isCA=i===cQ.a,isSel=sel===i,wasW=sr&&isSel&&!isCA,shC=sr&&isCA;
             const lb=["A","B","C","D"];
-            let bg=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`,bd=theme.border,tc=theme.textPrimary,an="";
-            if(shC){bg=theme.accent+"20";bd=theme.accent+"55";tc=theme.accent;}
-            if(wasW){bg="#FF444420";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
+            let bg=theme.cardBg+'DD',bd=theme.border,tc=theme.textPrimary,an="";
+            if(shC){bg=theme.accent+"15";bd=theme.accent+"55";tc=theme.accent;}
+            if(wasW){bg="#FF444415";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
             return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
-              background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
+              background:bg,backdropFilter:'blur(8px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
               cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
               fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
               animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
-              boxShadow:`0 2px 12px ${theme.bg}88`,
             }}
-              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"55";e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardHover}F5,${theme.cardHover}EE)`;e.currentTarget.style.boxShadow=`0 4px 20px ${catCol}15`;}}}
-              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}
+              onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"44";e.currentTarget.style.background=theme.cardHover+'DD';}}}
+              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg+'DD';}}}
             >
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
                 {shC?"✓":wasW?"✗":lb[i]}
