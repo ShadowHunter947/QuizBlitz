@@ -1,7 +1,7 @@
 {
   "name": "Quiz Blitz — Test Your Knowledge",
   "short_name": "Quiz Blitz",
-  "description": "Fast-paced trivia game with streaks, multipliers, and unlockable themes. Beat the clock!",
+  "description": "Fast-paced trivia v3 — Perfect 10 trivia rewards, Snake & Ladder, coin economy & unlockable themes!",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

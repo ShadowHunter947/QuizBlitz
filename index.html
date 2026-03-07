@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0A0A0F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="description" content="Quiz Blitz — Fast-paced trivia with themes, sounds & animated worlds!">
+<meta name="description" content="Quiz Blitz v3 — Trivia rewards, Snake & Ladder, coins & unlockable themes!">
 <title>Quiz Blitz</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icons/icon-192.png">
@@ -18,7 +18,6 @@ html,body,#root{height:100%;width:100%;overflow-x:hidden}
 body{background:#0A0A0F;font-family:'Outfit',sans-serif;color:#F5F5F5;overscroll-behavior:none}
 button{font-family:'Outfit',sans-serif;outline:none}
 ::-webkit-scrollbar{width:0;display:none}
-
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
@@ -49,6 +48,10 @@ button{font-family:'Outfit',sans-serif;outline:none}
 @keyframes compassSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 @keyframes starTwinkle{0%,100%{opacity:.1;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}}
 @keyframes waveFlow{0%{d:path('M0,50 Q100,20 200,50 T400,50')}50%{d:path('M0,50 Q100,80 200,50 T400,50')}100%{d:path('M0,50 Q100,20 200,50 T400,50')}}
+@keyframes diceRoll{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(90deg) scale(1.15)}50%{transform:rotate(180deg) scale(1)}75%{transform:rotate(270deg) scale(1.15)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes tokenBounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.2)}}
+@keyframes triviaReveal{0%{opacity:0;transform:scale(.85) translateY(20px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes coinPop{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.2) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -87,7 +90,6 @@ class SoundEngine {
     f.type='bandpass';f.frequency.value=1000;f.Q.value=0.5;
     src.connect(f);f.connect(g);src.start();src.stop(this.ctx.currentTime+dur);
   }
-  // --- GAME SOUNDS ---
   click(){this.osc('sine',800,0.06,0.15);this.osc('sine',1200,0.04,0.08);}
   hover(){this.osc('sine',600,0.03,0.05);}
   correct(){
@@ -95,10 +97,7 @@ class SoundEngine {
     [523,659,784].forEach((f,i)=>{setTimeout(()=>this.osc('sine',f,0.15,0.25),i*80);});
     this.osc('triangle',1047,0.3,0.1);
   }
-  wrong(){
-    this.osc('sawtooth',200,0.3,0.15);this.osc('square',150,0.2,0.1);
-    this.noise(0.15,0.08);
-  }
+  wrong(){this.osc('sawtooth',200,0.3,0.15);this.osc('square',150,0.2,0.1);this.noise(0.15,0.08);}
   streak(n){
     const base=440+n*40;
     [0,50,100].forEach((d,i)=>{setTimeout(()=>{this.osc('sine',base+i*100,0.12,0.2);this.osc('triangle',base+i*150,0.1,0.1);},d);});
@@ -120,10 +119,12 @@ class SoundEngine {
   }
   themeSelect(){this.osc('sine',523,0.08,0.15);setTimeout(()=>this.osc('sine',784,0.12,0.2),80);}
   timerWarning(){this.osc('square',440,0.08,0.12);this.osc('sine',880,0.05,0.08);}
-  multiplier(){
-    [660,880,1100].forEach((f,i)=>setTimeout(()=>this.osc('triangle',f,0.1,0.15),i*50));
-  }
-  // Category ambient tones
+  multiplier(){[660,880,1100].forEach((f,i)=>setTimeout(()=>this.osc('triangle',f,0.1,0.15),i*50));}
+  diceRoll(){[200,300,400,350].forEach((f,i)=>setTimeout(()=>this.osc('square',f,0.05,0.08),i*60));}
+  snakeBite(){this.osc('sawtooth',150,0.4,0.15);setTimeout(()=>this.osc('sine',100,0.3,0.1),200);}
+  ladderClimb(){[330,440,550,660].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.1,0.18),i*80));}
+  coinEarn(){this.osc('sine',880,0.08,0.2);setTimeout(()=>this.osc('triangle',1100,0.1,0.15),80);}
+  triviaUnlock(){[523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>this.osc('sine',f,0.2,0.25),i*90));}
   ambientPing(cat){
     const tones={Science:[523,659,784],History:[330,392,440],"Geography":[440,523,659],"Pop Culture":[587,740,880],Tech:[660,880,1100]};
     const t=tones[cat]||tones.Science;
@@ -135,8 +136,6 @@ const sfx=new SoundEngine();
 // ═══════════════════════════════════════
 // ANIMATED BACKGROUNDS per CATEGORY
 // ═══════════════════════════════════════
-
-// Center vignette overlay so questions stay readable
 const CenterVignette=({bg})=><div style={{position:'absolute',inset:0,
   background:`radial-gradient(ellipse at 50% 45%,${bg}EE 0%,${bg}CC 30%,${bg}66 60%,transparent 85%)`,
   pointerEvents:'none',zIndex:2}}/>;
@@ -151,7 +150,6 @@ const ScienceBg=({color,bg})=>{
     dur:10+Math.random()*10,delay:i*2,
   })),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Nebula-like colored blobs */}
     <div style={{position:'absolute',top:'-10%',left:'-5%',width:'45%',height:'45%',
       background:'radial-gradient(circle,#00E5A033 0%,#00E5A011 40%,transparent 70%)',
       animation:'nebula 12s ease-in-out infinite',borderRadius:'50%'}}/>
@@ -161,378 +159,133 @@ const ScienceBg=({color,bg})=>{
     <div style={{position:'absolute',top:'30%',right:'0%',width:'35%',height:'35%',
       background:'radial-gradient(circle,#7B68EE22 0%,transparent 60%)',
       animation:'nebula 10s ease-in-out 6s infinite',borderRadius:'50%'}}/>
-
-    {/* Glowing molecule structures */}
-    {molecules.map((m,i)=><div key={i} style={{
-      position:'absolute',left:m.x+'%',top:m.y+'%',width:m.size,height:m.size,
-      animation:`drift ${m.dur}s ease-in-out ${m.delay}s infinite`,
-    }}>
+    {molecules.map((m,i)=><div key={i} style={{position:'absolute',left:m.x+'%',top:m.y+'%',width:m.size,height:m.size,animation:`drift ${m.dur}s ease-in-out ${m.delay}s infinite`}}>
       <svg width={m.size} height={m.size} viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="4" fill={color} opacity="0.5">
-          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
-        </circle>
+        <circle cx="50" cy="50" r="4" fill={color} opacity="0.5"><animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/></circle>
         <circle cx="50" cy="50" r="20" fill="none" stroke={color} strokeWidth="0.5" opacity="0.2"/>
         <circle cx="50" cy="50" r="35" fill="none" stroke={color} strokeWidth="0.3" opacity="0.12"/>
-        {[0,60,120,180,240,300].map((angle,j)=>{
-          const rad=angle*Math.PI/180;const r2=20;
-          const cx2=50+Math.cos(rad)*r2;const cy2=50+Math.sin(rad)*r2;
-          return <g key={j}>
-            <line x1="50" y1="50" x2={cx2} y2={cy2} stroke={color} strokeWidth="0.5" opacity="0.2"/>
-            <circle cx={cx2} cy={cy2} r="2" fill={color} opacity="0.4">
-              <animate attributeName="opacity" values="0.2;0.6;0.2" dur={1.5+j*0.3+'s'} repeatCount="indefinite"/>
-            </circle>
-          </g>;
+        {[0,60,120,180,240,300].map((angle,j)=>{const rad=angle*Math.PI/180;const r2=20;const cx2=50+Math.cos(rad)*r2;const cy2=50+Math.sin(rad)*r2;
+          return <g key={j}><line x1="50" y1="50" x2={cx2} y2={cy2} stroke={color} strokeWidth="0.5" opacity="0.2"/>
+            <circle cx={cx2} cy={cy2} r="2" fill={color} opacity="0.4"><animate attributeName="opacity" values="0.2;0.6;0.2" dur={1.5+j*0.3+'s'} repeatCount="indefinite"/></circle></g>;
         })}
-        <circle cx="30" cy="30" r="2" fill="#00E5A0" opacity="0.6" style={{['--r']:'35px'}}>
+        <circle cx="30" cy="30" r="2" fill="#00E5A0" opacity="0.6">
           <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50" dur={4+i+'s'} repeatCount="indefinite"/>
         </circle>
       </svg>
     </div>)}
-
-    {/* DNA Double Helix - left side */}
     <svg width="80" height="500" style={{position:'absolute',left:'2%',top:'5%',opacity:0.25}}>
-      {Array.from({length:25},(_,i)=>{
-        const y=i*20;const phase=i*0.7;
-        const x1=20+Math.sin(phase)*18;const x2=60-Math.sin(phase)*18;
-        const colors=['#00E5A0','#00B4D8','#A78BFA'];
-        return <g key={i}>
-          <circle cx={x1} cy={y} r="3" fill={colors[i%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          <circle cx={x2} cy={y} r="3" fill={colors[(i+1)%3]} opacity="0.7">
-            <animate attributeName="opacity" values="0.4;0.9;0.4" dur={2.5+i*0.2+'s'} repeatCount="indefinite"/>
-          </circle>
-          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke="white" strokeWidth="0.6" opacity="0.15"/>}
-        </g>;
-      })}
+      {Array.from({length:25},(_,i)=>{const y=i*20;const phase=i*0.7;const x1=20+Math.sin(phase)*18;const x2=60-Math.sin(phase)*18;const colors=['#00E5A0','#00B4D8','#A78BFA'];
+        return <g key={i}><circle cx={x1} cy={y} r="3" fill={colors[i%3]} opacity="0.7"><animate attributeName="opacity" values="0.4;0.9;0.4" dur={2+i*0.2+'s'} repeatCount="indefinite"/></circle>
+          <circle cx={x2} cy={y} r="3" fill={colors[(i+1)%3]} opacity="0.7"><animate attributeName="opacity" values="0.4;0.9;0.4" dur={2.5+i*0.2+'s'} repeatCount="indefinite"/></circle>
+          {i%2===0&&<line x1={x1} y1={y} x2={x2} y2={y} stroke="white" strokeWidth="0.6" opacity="0.15"/>}</g>;})}
     </svg>
-
-    {/* Floating particles */}
-    {particles.map((p,i)=><div key={i} style={{
-      position:'absolute',left:p.x+'%',top:p.y+'%',width:p.size,height:p.size,
-      borderRadius:'50%',
-      background:p.hue===0?color:'#00B4D8',
-      boxShadow:`0 0 ${p.size*2}px ${p.hue===0?color:'#00B4D8'}44`,
-      animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
-    }}/>)}
-
+    {particles.map((p,i)=><div key={i} style={{position:'absolute',left:p.x+'%',top:p.y+'%',width:p.size,height:p.size,borderRadius:'50%',
+      background:p.hue===0?color:'#00B4D8',boxShadow:`0 0 ${p.size*2}px ${p.hue===0?color:'#00B4D8'}44`,
+      animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`}}/>)}
     <CenterVignette bg={bg}/>
   </div>;
 };
 
 const HistoryBg=({color,bg})=>{
-  const embers=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,size:1.5+Math.random()*3,
-    dur:3+Math.random()*5,delay:Math.random()*6,
-  })),[]);
-  const stars=useMemo(()=>Array.from({length:20},()=>({
-    x:Math.random()*100,y:Math.random()*40,size:1+Math.random()*2,dur:2+Math.random()*4,delay:Math.random()*3,
-  })),[]);
+  const embers=useMemo(()=>Array.from({length:25},()=>({x:Math.random()*100,size:1.5+Math.random()*3,dur:3+Math.random()*5,delay:Math.random()*6})),[]);
+  const stars=useMemo(()=>Array.from({length:20},()=>({x:Math.random()*100,y:Math.random()*40,size:1+Math.random()*2,dur:2+Math.random()*4,delay:Math.random()*3})),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Warm sunset sky gradient at top */}
-    <div style={{position:'absolute',top:0,left:0,right:0,height:'50%',
-      background:'linear-gradient(180deg,#FF6B6B15 0%,#FFB34718 20%,#FF8C0010 40%,transparent 100%)'}}/>
-
-    {/* Stars twinkling */}
-    {stars.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:'50%',background:'#FFE4B5',
-      boxShadow:`0 0 ${s.size*3}px #FFE4B566`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
-    }}/>)}
-
-    {/* Pyramids - vibrant golden */}
-    <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMax meet"
-      style={{position:'absolute',bottom:0}}>
-      {/* Sky glow behind pyramids */}
+    <div style={{position:'absolute',top:0,left:0,right:0,height:'50%',background:'linear-gradient(180deg,#FF6B6B15 0%,#FFB34718 20%,#FF8C0010 40%,transparent 100%)'}}/>
+    {stars.map((s,i)=><div key={i} style={{position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,borderRadius:'50%',background:'#FFE4B5',boxShadow:`0 0 ${s.size*3}px #FFE4B566`,animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`}}/>)}
+    <svg width="100%" height="100%" viewBox="0 0 500 350" preserveAspectRatio="xMidYMax meet" style={{position:'absolute',bottom:0}}>
       <defs>
-        <linearGradient id="pyrGlow" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FF6B6B" stopOpacity="0"/>
-          <stop offset="70%" stopColor="#FF8C00" stopOpacity="0.08"/>
-          <stop offset="100%" stopColor="#FFB347" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFD700" stopOpacity="0.35"/>
-          <stop offset="100%" stopColor="#FF8C00" stopOpacity="0.15"/>
-        </linearGradient>
-        <linearGradient id="pyrFace2" x1="100%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#FFB347" stopOpacity="0.2"/>
-          <stop offset="100%" stopColor="#8B4513" stopOpacity="0.15"/>
-        </linearGradient>
+        <linearGradient id="pyrFace1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#FFD700" stopOpacity="0.35"/><stop offset="100%" stopColor="#FF8C00" stopOpacity="0.15"/></linearGradient>
+        <linearGradient id="pyrFace2" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#FFB347" stopOpacity="0.2"/><stop offset="100%" stopColor="#8B4513" stopOpacity="0.15"/></linearGradient>
       </defs>
-      <rect x="0" y="0" width="500" height="350" fill="url(#pyrGlow)"/>
-      {/* Main pyramid */}
       <polygon points="200,100 310,300 90,300" fill="url(#pyrFace1)" stroke="#FFD70033" strokeWidth="0.5"/>
       <polygon points="200,100 310,300 200,300" fill="url(#pyrFace2)"/>
-      {/* Second pyramid */}
       <polygon points="350,160 440,300 260,300" fill="url(#pyrFace1)" opacity="0.7" stroke="#FFD70022" strokeWidth="0.5"/>
       <polygon points="350,160 440,300 350,300" fill="url(#pyrFace2)" opacity="0.7"/>
-      {/* Small pyramid */}
       <polygon points="80,220 130,300 30,300" fill="url(#pyrFace1)" opacity="0.5"/>
-      {/* Ground */}
       <rect x="0" y="298" width="500" height="52" fill="#D2691E" opacity="0.08"/>
-      <line x1="0" y1="300" x2="500" y2="300" stroke="#FFD700" strokeWidth="0.5" opacity="0.2"/>
     </svg>
-
-    {/* Torch flames on sides */}
-    <div style={{position:'absolute',left:'6%',bottom:'28%'}}>
-      <div style={{width:8,height:20,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.5s ease infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-    <div style={{position:'absolute',right:'6%',bottom:'25%'}}>
-      <div style={{width:8,height:22,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',
-        borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.8s ease 0.5s infinite',
-        boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/>
-      <div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/>
-    </div>
-
-    {/* Rising embers */}
-    {embers.map((e,i)=><div key={i} style={{
-      position:'absolute',left:e.x+'%',bottom:'-5%',width:e.size,height:e.size,
-      borderRadius:'50%',
-      background:i%3===0?'#FF6B6B':i%3===1?'#FFD700':'#FF8C00',
-      boxShadow:`0 0 ${e.size*3}px ${i%3===0?'#FF6B6B':'#FFD700'}44`,
-      animation:`sandDrift ${e.dur}s ease ${e.delay}s infinite`,
-    }}/>)}
-
-    {/* Hieroglyphs - more visible */}
-    <div style={{position:'absolute',left:'3%',top:'12%',fontSize:32,opacity:0.08,color:'#FFD700',
-      animation:'float 8s ease-in-out infinite'}}>𓂀</div>
-    <div style={{position:'absolute',right:'5%',top:'20%',fontSize:26,opacity:0.07,color:'#FFB347',
-      animation:'float 10s ease-in-out 2s infinite'}}>𓃭</div>
-    <div style={{position:'absolute',left:'15%',top:'5%',fontSize:22,opacity:0.06,color:'#FF8C00',
-      animation:'float 12s ease-in-out 4s infinite'}}>𓅃</div>
-    <div style={{position:'absolute',right:'15%',top:'8%',fontSize:20,opacity:0.05,color:'#FFD700',
-      animation:'float 9s ease-in-out 1s infinite'}}>𓁹</div>
-
+    <div style={{position:'absolute',left:'6%',bottom:'28%'}}><div style={{width:8,height:20,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.5s ease infinite',boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/><div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/></div>
+    <div style={{position:'absolute',right:'6%',bottom:'25%'}}><div style={{width:8,height:22,background:'linear-gradient(0deg,#FF450066,#FFD70088,#FF8C0044,transparent)',borderRadius:'50% 50% 20% 20%',animation:'torchFlicker 1.8s ease 0.5s infinite',boxShadow:'0 0 15px #FF8C0055, 0 0 30px #FF450033'}}/><div style={{width:4,height:12,background:'#8B4513',margin:'0 auto',borderRadius:2,opacity:0.3}}/></div>
+    {embers.map((e,i)=><div key={i} style={{position:'absolute',left:e.x+'%',bottom:'-5%',width:e.size,height:e.size,borderRadius:'50%',background:i%3===0?'#FF6B6B':i%3===1?'#FFD700':'#FF8C00',boxShadow:`0 0 ${e.size*3}px ${i%3===0?'#FF6B6B':'#FFD700'}44`,animation:`sandDrift ${e.dur}s ease ${e.delay}s infinite`}}/>)}
+    <div style={{position:'absolute',left:'3%',top:'12%',fontSize:32,opacity:0.08,color:'#FFD700',animation:'float 8s ease-in-out infinite'}}>𓂀</div>
+    <div style={{position:'absolute',right:'5%',top:'20%',fontSize:26,opacity:0.07,color:'#FFB347',animation:'float 10s ease-in-out 2s infinite'}}>𓃭</div>
     <CenterVignette bg={bg}/>
   </div>;
 };
 
 const GeographyBg=({color,bg})=>{
-  const pins=useMemo(()=>Array.from({length:10},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,dur:3+Math.random()*4,delay:Math.random()*4,
-  })),[]);
-  const waves=useMemo(()=>Array.from({length:4},(_,i)=>({
-    y:75+i*6,dur:3+i*0.8,delay:i*0.5,opacity:0.08-i*0.015,
-  })),[]);
+  const pins=useMemo(()=>Array.from({length:10},()=>({x:5+Math.random()*90,y:5+Math.random()*90,dur:3+Math.random()*4,delay:Math.random()*4})),[]);
+  const waves=useMemo(()=>Array.from({length:4},(_,i)=>({y:75+i*6,dur:3+i*0.8,delay:i*0.5})),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Aurora borealis at top */}
     <div style={{position:'absolute',top:0,left:0,right:0,height:'35%',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:'-20%',left:'-10%',width:'60%',height:'150%',
-        background:'linear-gradient(135deg,#4ECDC433,#00B4D822,transparent)',
-        borderRadius:'50%',animation:'aurora 8s ease-in-out infinite'}}/>
-      <div style={{position:'absolute',top:'-10%',right:'-15%',width:'55%',height:'130%',
-        background:'linear-gradient(225deg,#34D39933,#4ECDC422,transparent)',
-        borderRadius:'50%',animation:'aurora 10s ease-in-out 2s infinite'}}/>
-      <div style={{position:'absolute',top:'0%',left:'20%',width:'40%',height:'100%',
-        background:'linear-gradient(180deg,#00E5A022,transparent)',
-        borderRadius:'50%',animation:'aurora 12s ease-in-out 4s infinite'}}/>
+      <div style={{position:'absolute',top:'-20%',left:'-10%',width:'60%',height:'150%',background:'linear-gradient(135deg,#4ECDC433,#00B4D822,transparent)',borderRadius:'50%',animation:'aurora 8s ease-in-out infinite'}}/>
+      <div style={{position:'absolute',top:'-10%',right:'-15%',width:'55%',height:'130%',background:'linear-gradient(225deg,#34D39933,#4ECDC422,transparent)',borderRadius:'50%',animation:'aurora 10s ease-in-out 2s infinite'}}/>
+      <div style={{position:'absolute',top:'0%',left:'20%',width:'40%',height:'100%',background:'linear-gradient(180deg,#00E5A022,transparent)',borderRadius:'50%',animation:'aurora 12s ease-in-out 4s infinite'}}/>
     </div>
-
-    {/* Globe wireframe - more vivid */}
-    <svg width="350" height="350" viewBox="0 0 200 200"
-      style={{position:'absolute',right:'-8%',top:'8%',opacity:0.12}}>
-      <defs>
-        <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4ECDC4"/>
-          <stop offset="100%" stopColor="#00B4D8"/>
-        </linearGradient>
-      </defs>
+    <svg width="350" height="350" viewBox="0 0 200 200" style={{position:'absolute',right:'-8%',top:'8%',opacity:0.12}}>
+      <defs><linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#4ECDC4"/><stop offset="100%" stopColor="#00B4D8"/></linearGradient></defs>
       <circle cx="100" cy="100" r="80" fill="none" stroke="url(#globeGrad)" strokeWidth="1.2"/>
       <ellipse cx="100" cy="100" rx="80" ry="30" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
       <ellipse cx="100" cy="100" rx="80" ry="55" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
       <ellipse cx="100" cy="100" rx="30" ry="80" fill="none" stroke={color} strokeWidth="0.6" opacity="0.8"/>
       <ellipse cx="100" cy="100" rx="55" ry="80" fill="none" stroke={color} strokeWidth="0.5" opacity="0.6"/>
-      <line x1="20" y1="100" x2="180" y2="100" stroke={color} strokeWidth="0.4" opacity="0.5"/>
-      <line x1="100" y1="20" x2="100" y2="180" stroke={color} strokeWidth="0.4" opacity="0.5"/>
       <animateTransform attributeName="transform" type="rotate" values="0 100 100;360 100 100" dur="50s" repeatCount="indefinite"/>
     </svg>
-
-    {/* Map pins - colored and glowing */}
-    {pins.map((p,i)=><div key={i} style={{
-      position:'absolute',left:p.x+'%',top:p.y+'%',animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`,
-    }}>
-      <svg width="16" height="22" viewBox="0 0 12 16">
-        <path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z"
-          fill={i%3===0?'#4ECDC4':i%3===1?'#00B4D8':'#34D399'} opacity="0.35"/>
-        <circle cx="6" cy="6" r="2" fill="white" opacity="0.5"/>
-      </svg>
+    {pins.map((p,i)=><div key={i} style={{position:'absolute',left:p.x+'%',top:p.y+'%',animation:`sparkle ${p.dur}s ease ${p.delay}s infinite`}}>
+      <svg width="16" height="22" viewBox="0 0 12 16"><path d="M6 0C2.7 0 0 2.7 0 6c0 4.5 6 10 6 10s6-5.5 6-10C12 2.7 9.3 0 6 0z" fill={i%3===0?'#4ECDC4':i%3===1?'#00B4D8':'#34D399'} opacity="0.35"/><circle cx="6" cy="6" r="2" fill="white" opacity="0.5"/></svg>
     </div>)}
-
-    {/* Ocean waves at bottom */}
     <svg width="100%" height="120" style={{position:'absolute',bottom:0}}>
-      {waves.map((w,i)=><path key={i}
-        d={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-        fill="none" stroke={i%2===0?'#4ECDC4':'#00B4D8'} strokeWidth={1.5-i*0.2} opacity={w.opacity*3}>
-        <animate attributeName="d"
-          values={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${45+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`}
-          dur={w.dur+'s'} repeatCount="indefinite"/>
+      {waves.map((w,i)=><path key={i} d={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`} fill="none" stroke={i%2===0?'#4ECDC4':'#00B4D8'} strokeWidth={1.5-i*0.2} opacity={0.08-i*0.015}>
+        <animate attributeName="d" values={`M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${45+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15};M-50,${30+i*15} Q50,${15+i*15} 150,${30+i*15} T350,${30+i*15} T550,${30+i*15}`} dur={w.dur+'s'} repeatCount="indefinite"/>
       </path>)}
     </svg>
-
-    {/* Compass rose - subtle, bottom left */}
-    <svg width="60" height="60" viewBox="0 0 60 60" style={{position:'absolute',left:'5%',bottom:'18%',opacity:0.1}}>
-      <circle cx="30" cy="30" r="25" fill="none" stroke={color} strokeWidth="0.8"/>
-      <polygon points="30,8 33,26 30,22 27,26" fill={color} opacity="0.8"/>
-      <polygon points="30,52 33,34 30,38 27,34" fill={color} opacity="0.4"/>
-      <polygon points="8,30 26,27 22,30 26,33" fill={color} opacity="0.4"/>
-      <polygon points="52,30 34,27 38,30 34,33" fill={color} opacity="0.6"/>
-      <animateTransform attributeName="transform" type="rotate" values="0 30 30;360 30 30" dur="30s" repeatCount="indefinite"/>
-    </svg>
-
     <CenterVignette bg={bg}/>
   </div>;
 };
 
 const PopCultureBg=({color,bg})=>{
-  const sparkles=useMemo(()=>Array.from({length:25},()=>({
-    x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,
-    dur:1.5+Math.random()*3,delay:Math.random()*4,
-    color:['#FFE66D','#FF77A9','#A78BFA','#00E5FF','#FF6B6B'][Math.floor(Math.random()*5)],
-  })),[]);
+  const sparkles=useMemo(()=>Array.from({length:25},()=>({x:Math.random()*100,y:Math.random()*100,size:2+Math.random()*5,dur:1.5+Math.random()*3,delay:Math.random()*4,color:['#FFE66D','#FF77A9','#A78BFA','#00E5FF','#FF6B6B'][Math.floor(Math.random()*5)]})),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Colorful spotlight beams */}
-    <div style={{position:'absolute',left:'10%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#FF77A920,#FF77A910,transparent 70%)',
-      transform:'rotate(-20deg)',transformOrigin:'bottom center',animation:'neonPulse 4s ease infinite'}}/>
-    <div style={{position:'absolute',right:'15%',bottom:0,width:3,height:'110%',
-      background:'linear-gradient(0deg,#A78BFA20,#A78BFA10,transparent 70%)',
-      transform:'rotate(15deg)',transformOrigin:'bottom center',animation:'neonPulse 5s ease 1s infinite'}}/>
-    <div style={{position:'absolute',left:'45%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#FFE66D18,#FFE66D08,transparent 60%)',
-      transform:'rotate(-5deg)',transformOrigin:'bottom center',animation:'neonPulse 3.5s ease 2s infinite'}}/>
-    <div style={{position:'absolute',right:'35%',bottom:0,width:2,height:'110%',
-      background:'linear-gradient(0deg,#00E5FF15,transparent 50%)',
-      transform:'rotate(8deg)',transformOrigin:'bottom center',animation:'neonPulse 4.5s ease 0.5s infinite'}}/>
-
-    {/* Colored glow orbs */}
-    <div style={{position:'absolute',top:'5%',left:'5%',width:'30%',height:'25%',
-      background:'radial-gradient(circle,#FF77A918 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 8s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',top:'15%',right:'5%',width:'25%',height:'25%',
-      background:'radial-gradient(circle,#A78BFA18 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 10s ease-in-out 3s infinite'}}/>
-    <div style={{position:'absolute',bottom:'15%',left:'10%',width:'25%',height:'20%',
-      background:'radial-gradient(circle,#FFE66D12 0%,transparent 70%)',borderRadius:'50%',
-      animation:'nebula 9s ease-in-out 5s infinite'}}/>
-
-    {/* Sparkle stars - multicolored */}
-    {sparkles.map((s,i)=><div key={i} style={{
-      position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,
-      borderRadius:i%3===0?'50%':'2px',transform:i%3===2?'rotate(45deg)':'none',
-      background:s.color,boxShadow:`0 0 ${s.size*2}px ${s.color}66`,
-      animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`,
-    }}/>)}
-
-    {/* Film strip - left side, more vivid */}
+    <div style={{position:'absolute',left:'10%',bottom:0,width:3,height:'110%',background:'linear-gradient(0deg,#FF77A920,#FF77A910,transparent 70%)',transform:'rotate(-20deg)',transformOrigin:'bottom center',animation:'neonPulse 4s ease infinite'}}/>
+    <div style={{position:'absolute',right:'15%',bottom:0,width:3,height:'110%',background:'linear-gradient(0deg,#A78BFA20,#A78BFA10,transparent 70%)',transform:'rotate(15deg)',transformOrigin:'bottom center',animation:'neonPulse 5s ease 1s infinite'}}/>
+    <div style={{position:'absolute',left:'45%',bottom:0,width:2,height:'110%',background:'linear-gradient(0deg,#FFE66D18,#FFE66D08,transparent 60%)',transform:'rotate(-5deg)',transformOrigin:'bottom center',animation:'neonPulse 3.5s ease 2s infinite'}}/>
+    <div style={{position:'absolute',top:'5%',left:'5%',width:'30%',height:'25%',background:'radial-gradient(circle,#FF77A918 0%,transparent 70%)',borderRadius:'50%',animation:'nebula 8s ease-in-out infinite'}}/>
+    <div style={{position:'absolute',top:'15%',right:'5%',width:'25%',height:'25%',background:'radial-gradient(circle,#A78BFA18 0%,transparent 70%)',borderRadius:'50%',animation:'nebula 10s ease-in-out 3s infinite'}}/>
+    {sparkles.map((s,i)=><div key={i} style={{position:'absolute',left:s.x+'%',top:s.y+'%',width:s.size,height:s.size,borderRadius:i%3===0?'50%':'2px',transform:i%3===2?'rotate(45deg)':'none',background:s.color,boxShadow:`0 0 ${s.size*2}px ${s.color}66`,animation:`starTwinkle ${s.dur}s ease ${s.delay}s infinite`}}/>)}
     <div style={{position:'absolute',left:'2%',top:'3%',opacity:0.08}}>
       <svg width="35" height="260" viewBox="0 0 30 200">
-        {Array.from({length:10},(_,i)=><g key={i}>
-          <rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke="#FFE66D" strokeWidth="1"/>
+        {Array.from({length:10},(_,i)=><g key={i}><rect x="0" y={i*20} width="30" height="18" rx="1" fill="none" stroke="#FFE66D" strokeWidth="1"/>
           <rect x="2" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="2" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-          <rect x="24" y={i*20+12} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/>
-        </g>)}
+          <rect x="24" y={i*20+2} width="4" height="4" rx="0.5" fill="#FFE66D" opacity="0.6"/></g>)}
         <animateTransform attributeName="transform" type="translate" values="0 0;0 -40;0 0" dur="6s" repeatCount="indefinite"/>
       </svg>
     </div>
-
-    {/* Music notes */}
-    <div style={{position:'absolute',right:'5%',top:'10%',fontSize:34,opacity:0.08,color:'#FF77A9',
-      animation:'float 5s ease-in-out infinite'}}>♪</div>
-    <div style={{position:'absolute',right:'18%',top:'35%',fontSize:24,opacity:0.06,color:'#A78BFA',
-      animation:'float 7s ease-in-out 1.5s infinite'}}>♫</div>
-    <div style={{position:'absolute',left:'8%',bottom:'20%',fontSize:28,opacity:0.07,color:'#FFE66D',
-      animation:'float 6s ease-in-out 3s infinite'}}>♬</div>
-
-    {/* Star burst - bottom right */}
-    <svg width="80" height="80" viewBox="0 0 80 80" style={{position:'absolute',right:'8%',bottom:'12%',opacity:0.06}}>
-      {Array.from({length:8},(_,i)=>{
-        const angle=(i/8)*Math.PI*2;
-        return <line key={i} x1="40" y1="40" x2={40+Math.cos(angle)*35} y2={40+Math.sin(angle)*35}
-          stroke="#FFE66D" strokeWidth="1" opacity="0.8">
-          <animate attributeName="opacity" values="0.3;1;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </line>;
-      })}
-    </svg>
-
+    <div style={{position:'absolute',right:'5%',top:'10%',fontSize:34,opacity:0.08,color:'#FF77A9',animation:'float 5s ease-in-out infinite'}}>♪</div>
+    <div style={{position:'absolute',right:'18%',top:'35%',fontSize:24,opacity:0.06,color:'#A78BFA',animation:'float 7s ease-in-out 1.5s infinite'}}>♫</div>
+    <div style={{position:'absolute',left:'8%',bottom:'20%',fontSize:28,opacity:0.07,color:'#FFE66D',animation:'float 6s ease-in-out 3s infinite'}}>♬</div>
     <CenterVignette bg={bg}/>
   </div>;
 };
 
 const TechBg=({color,bg})=>{
-  const binaryStreams=useMemo(()=>Array.from({length:15},(_,i)=>({
-    x:3+Math.random()*94,chars:Array.from({length:8},()=>Math.random()>.5?'1':'0').join(''),
-    dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*4,
-    color:['#7B68EE','#00E5FF','#E040FB','#00E5A0'][Math.floor(Math.random()*4)],
-  })),[]);
-  const nodes=useMemo(()=>Array.from({length:8},()=>({
-    x:5+Math.random()*90,y:5+Math.random()*90,
-  })),[]);
+  const binaryStreams=useMemo(()=>Array.from({length:15},(_,i)=>({x:3+Math.random()*94,chars:Array.from({length:8},()=>Math.random()>.5?'1':'0').join(''),dur:4+Math.random()*8,delay:Math.random()*6,size:10+Math.random()*4,color:['#7B68EE','#00E5FF','#E040FB','#00E5A0'][Math.floor(Math.random()*4)]})),[]);
+  const nodes=useMemo(()=>Array.from({length:8},()=>({x:5+Math.random()*90,y:5+Math.random()*90})),[]);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',pointerEvents:'none'}}>
-    {/* Cyberpunk gradient glows */}
-    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'40%',height:'40%',
-      background:'radial-gradient(circle,#7B68EE22 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 10s ease-in-out infinite'}}/>
-    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'45%',height:'45%',
-      background:'radial-gradient(circle,#00E5FF1A 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 12s ease-in-out 4s infinite'}}/>
-    <div style={{position:'absolute',top:'30%',left:'60%',width:'30%',height:'30%',
-      background:'radial-gradient(circle,#E040FB12 0%,transparent 70%)',
-      borderRadius:'50%',animation:'nebula 8s ease-in-out 2s infinite'}}/>
-
-    {/* Circuit board lines - glowing */}
+    <div style={{position:'absolute',top:'-10%',left:'-5%',width:'40%',height:'40%',background:'radial-gradient(circle,#7B68EE22 0%,transparent 70%)',borderRadius:'50%',animation:'nebula 10s ease-in-out infinite'}}/>
+    <div style={{position:'absolute',bottom:'-5%',right:'-5%',width:'45%',height:'45%',background:'radial-gradient(circle,#00E5FF1A 0%,transparent 70%)',borderRadius:'50%',animation:'nebula 12s ease-in-out 4s infinite'}}/>
     <svg width="100%" height="100%" style={{position:'absolute'}}>
-      {nodes.map((n,i)=>{
-        const next=nodes[(i+1)%nodes.length];
-        const midX=(parseFloat(n.x)+parseFloat(next.x))/2;
-        const colors=['#7B68EE','#00E5FF','#E040FB','#00E5A0'];
+      {nodes.map((n,i)=>{const next=nodes[(i+1)%nodes.length];const midX=(parseFloat(n.x)+parseFloat(next.x))/2;const colors=['#7B68EE','#00E5FF','#E040FB','#00E5A0'];
         return <g key={i}>
-          <path d={`M${n.x}% ${n.y}% L${midX}% ${n.y}% L${midX}% ${next.y}% L${next.x}% ${next.y}%`}
-            fill="none" stroke={colors[i%4]} strokeWidth="0.8" opacity="0.12">
+          <path d={`M${n.x}% ${n.y}% L${midX}% ${n.y}% L${midX}% ${next.y}% L${next.x}% ${next.y}%`} fill="none" stroke={colors[i%4]} strokeWidth="0.8" opacity="0.12">
             <animate attributeName="opacity" values="0.05;0.2;0.05" dur={3+i*0.5+'s'} repeatCount="indefinite"/>
           </path>
           <circle cx={n.x+'%'} cy={n.y+'%'} r="3" fill={colors[i%4]} opacity="0.3">
             <animate attributeName="r" values="2;5;2" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.15;0.5;0.15" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
           </circle>
-        </g>;
-      })}
+        </g>;})}
     </svg>
-
-    {/* Binary rain - colored */}
-    {binaryStreams.map((b,i)=><div key={i} style={{
-      position:'absolute',left:b.x+'%',top:'-5%',
-      fontSize:b.size,color:b.color,fontFamily:'monospace',fontWeight:700,
-      opacity:0.15,letterSpacing:2,writingMode:'vertical-lr',
-      animation:`dataStream ${b.dur}s linear ${b.delay}s infinite`,
-      textShadow:`0 0 8px ${b.color}44`,
-    }}>{b.chars}</div>)}
-
-    {/* Hex grid pattern - bottom */}
-    <svg width="200" height="100" viewBox="0 0 200 100"
-      style={{position:'absolute',right:'3%',bottom:'5%',opacity:0.05}}>
-      {Array.from({length:12},(_,i)=>{
-        const row=Math.floor(i/4);const col=i%4;
-        const cx=25+col*50+(row%2?25:0);const cy=25+row*30;
-        return <polygon key={i} points={[0,1,2,3,4,5].map(j=>{
-          const a=(j/6)*Math.PI*2-Math.PI/6;
-          return `${cx+15*Math.cos(a)},${cy+15*Math.sin(a)}`;
-        }).join(' ')} fill="none" stroke={color} strokeWidth="0.5">
-          <animate attributeName="opacity" values="0.3;0.8;0.3" dur={2+i*0.3+'s'} repeatCount="indefinite"/>
-        </polygon>;
-      })}
-    </svg>
-
-    {/* Terminal prompt */}
-    <div style={{position:'absolute',right:'4%',bottom:'12%',fontFamily:'monospace',fontSize:20,
-      opacity:0.06,color:'#00E5FF',animation:'pulse 2.5s ease infinite',
-      textShadow:'0 0 10px #00E5FF44'}}>&gt;_</div>
-
+    {binaryStreams.map((b,i)=><div key={i} style={{position:'absolute',left:b.x+'%',top:'-5%',fontSize:b.size,color:b.color,fontFamily:'monospace',fontWeight:700,opacity:0.15,letterSpacing:2,writingMode:'vertical-lr',animation:`dataStream ${b.dur}s linear ${b.delay}s infinite`,textShadow:`0 0 8px ${b.color}44`}}>{b.chars}</div>)}
+    <div style={{position:'absolute',right:'4%',bottom:'12%',fontFamily:'monospace',fontSize:20,opacity:0.06,color:'#00E5FF',animation:'pulse 2.5s ease infinite',textShadow:'0 0 10px #00E5FF44'}}>&gt;_</div>
     <CenterVignette bg={bg}/>
   </div>;
 };
@@ -549,7 +302,7 @@ const CategoryBg=({category,color,bg})=>{
 };
 
 // ═══════════════════════════════════════
-// GAME DATA
+// GAME DATA — THEMES + CONSTANTS
 // ═══════════════════════════════════════
 const THEMES=[
 {id:"midnight",name:"Midnight",free:true,unlockLevel:0,bg:"#0A0A0F",cardBg:"#111118",cardHover:"#15151F",border:"#1A1A2E",accent:"#00E5A0",accentAlt:"#00B4D8",textPrimary:"#F5F5F5",textSecondary:"#555",gradient:"radial-gradient(ellipse at 20% 50%,#00E5A008 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#00B4D806 0%,transparent 50%)",preview:"linear-gradient(135deg,#0A0A0F,#111118,#0A0A0F)",emoji:"🌙"},
@@ -562,19 +315,244 @@ const THEMES=[
 {id:"matrix",name:"Matrix",free:false,unlockLevel:30,bg:"#000A00",cardBg:"#001A00",cardHover:"#002400",border:"#003D00",accent:"#00FF41",accentAlt:"#00CC33",textPrimary:"#CCFFCC",textSecondary:"#337733",gradient:"radial-gradient(ellipse at 50% 50%,#00FF4106 0%,transparent 50%)",preview:"linear-gradient(135deg,#000A00,#001A00,#000A00)",emoji:"🟢"},
 ];
 
+const SNAKES={99:54,95:72,92:51,83:19,73:1,64:36,48:9,44:22,32:10,16:4};
+const LADDERS={2:38,7:14,8:31,15:26,21:42,28:84,36:44,51:67,71:91,78:98};
+const THEME_PRICES={ocean:300,aurora:600,sakura:900,golden:1200,neon:1500,matrix:2000};
+const COOLDOWN_MS=60*60*1000;
+
+// ═══════════════════════════════════════
+// QUESTIONS — 20 Easy + 15 Hard per category
+// ═══════════════════════════════════════
 const QE={
-Science:[{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},{q:"How many bones in the adult human body?",opts:["186","206","226","196"],a:1},{q:"What planet is the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},{q:"What gas do plants absorb?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},{q:"Element with atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},{q:"Hardest natural substance?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},{q:"What organ filters blood?",opts:["Liver","Heart","Kidney","Lungs"],a:2},{q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},{q:"Largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2}],
-History:[{q:"Year World War II ended?",opts:["1943","1944","1945","1946"],a:2},{q:"First person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},{q:"Who built the pyramids of Giza?",opts:["Roman","Greek","Egyptian","Persian"],a:2},{q:"Year Bangladesh gained independence?",opts:["1947","1965","1971","1975"],a:2},{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},{q:"Empire ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},{q:"Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},{q:"Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},{q:"First US President?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},{q:"City buried by Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2}],
-Geography:[{q:"Largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},{q:"Capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},{q:"Longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},{q:"Smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},{q:"Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},{q:"Land of the Rising Sun?",opts:["China","S. Korea","Thailand","Japan"],a:3},{q:"Largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},{q:"How many continents?",opts:["5","6","7","8"],a:2},{q:"Tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},{q:"Country with most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2}],
-"Pop Culture":[{q:"Highest-grossing film ever (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},{q:"Who wrote Harry Potter?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},{q:"First iPhone released?",opts:["2005","2006","2007","2008"],a:2},{q:"Band behind 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},{q:"Year YouTube was founded?",opts:["2003","2005","2007","2009"],a:1},{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},{q:"Nintendo's console?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},{q:"Mario's brother?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},{q:"Movie with character Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},{q:"Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1}],
-Tech:[{q:"What does HTTP stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},{q:"Father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},{q:"Most used web dev language?",opts:["Python","Java","JavaScript","C++"],a:2},{q:"What does AI stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},{q:"Who developed Android?",opts:["Apple","Microsoft","Google","Samsung"],a:2},{q:"Bits in a byte?",opts:["4","6","8","16"],a:2},{q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},{q:"Who makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},{q:"World Wide Web invented?",opts:["1985","1989","1993","1997"],a:1},{q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0}],
+Science:[
+{q:"What is the chemical symbol for gold?",opts:["Go","Au","Ag","Gd"],a:1},
+{q:"How many bones in the adult human body?",opts:["186","206","226","196"],a:1},
+{q:"What planet is the Red Planet?",opts:["Venus","Jupiter","Mars","Saturn"],a:2},
+{q:"What gas do plants absorb from the air?",opts:["Oxygen","Nitrogen","CO₂","Hydrogen"],a:2},
+{q:"Element with atomic number 1?",opts:["Helium","Hydrogen","Lithium","Carbon"],a:1},
+{q:"Hardest natural substance on Earth?",opts:["Titanium","Quartz","Diamond","Sapphire"],a:2},
+{q:"How many chromosomes do humans have?",opts:["44","46","48","42"],a:1},
+{q:"What organ filters blood in the human body?",opts:["Liver","Heart","Kidney","Lungs"],a:2},
+{q:"What force keeps planets in orbit around the Sun?",opts:["Magnetism","Friction","Gravity","Inertia"],a:2},
+{q:"Largest organ of the human body?",opts:["Liver","Brain","Skin","Lungs"],a:2},
+{q:"Approximate speed of light in a vacuum?",opts:["300,000 km/s","150,000 km/s","30,000 km/s","600,000 km/s"],a:0},
+{q:"How many planets are in our solar system?",opts:["7","8","9","6"],a:1},
+{q:"Which organelle is the powerhouse of the cell?",opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"],a:2},
+{q:"Photosynthesis occurs mainly in which plant organ?",opts:["Root","Stem","Flower","Leaf"],a:3},
+{q:"At what temperature does water boil at sea level?",opts:["90°C","100°C","110°C","80°C"],a:1},
+{q:"Dolphins are classified as what type of animal?",opts:["Fish","Reptile","Mammal","Amphibian"],a:2},
+{q:"What is the chemical symbol for oxygen?",opts:["O","Ox","Om","Oy"],a:0},
+{q:"What is H₂O commonly known as?",opts:["Salt","Sugar","Water","Alcohol"],a:2},
+{q:"What do plants produce during photosynthesis?",opts:["CO₂","Nitrogen","Oxygen","Methane"],a:2},
+{q:"What is a large system of stars called?",opts:["Nebula","Comet","Galaxy","Asteroid"],a:2},
+],
+History:[
+{q:"Year World War II ended?",opts:["1943","1944","1945","1946"],a:2},
+{q:"First person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],a:2},
+{q:"Who built the pyramids of Giza?",opts:["Romans","Greeks","Egyptians","Persians"],a:2},
+{q:"Year Bangladesh gained independence?",opts:["1947","1965","1971","1975"],a:2},
+{q:"Who painted the Mona Lisa?",opts:["Michelangelo","Da Vinci","Raphael","Rembrandt"],a:1},
+{q:"Empire ruled by Genghis Khan?",opts:["Ottoman","Mongol","Roman","Persian"],a:1},
+{q:"Titanic sank in which year?",opts:["1905","1912","1918","1920"],a:1},
+{q:"Berlin Wall fell in what year?",opts:["1987","1989","1991","1993"],a:1},
+{q:"First US President?",opts:["Jefferson","Lincoln","Washington","Adams"],a:2},
+{q:"Which city was buried by the eruption of Vesuvius?",opts:["Rome","Athens","Pompeii","Carthage"],a:2},
+{q:"Who was the first emperor of Rome?",opts:["Julius Caesar","Augustus","Nero","Caligula"],a:1},
+{q:"The Renaissance originated in which country?",opts:["France","England","Italy","Spain"],a:2},
+{q:"The French Revolution began in which year?",opts:["1776","1789","1799","1804"],a:1},
+{q:"Who was known as the 'Maid of Orleans'?",opts:["Catherine the Great","Marie Curie","Joan of Arc","Cleopatra"],a:2},
+{q:"The American Civil War ended in what year?",opts:["1861","1863","1865","1867"],a:2},
+{q:"Gandhi's movement for independence was from which colonial power?",opts:["France","USA","Britain","Portugal"],a:2},
+{q:"The Communist Manifesto was written by Marx and?",opts:["Lenin","Trotsky","Engels","Stalin"],a:2},
+{q:"The Eiffel Tower was built for which event?",opts:["1900 Olympics","1889 World's Fair","1876 Expo","1885 Fair"],a:1},
+{q:"Ancient Olympic Games were held in which city?",opts:["Rome","Athens","Olympia","Sparta"],a:2},
+{q:"Alexander the Great came from which kingdom?",opts:["Rome","Persia","Macedonia","Egypt"],a:2},
+],
+Geography:[
+{q:"Largest ocean on Earth?",opts:["Atlantic","Indian","Arctic","Pacific"],a:3},
+{q:"Capital of Australia?",opts:["Sydney","Melbourne","Canberra","Perth"],a:2},
+{q:"Longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],a:1},
+{q:"Smallest country in the world?",opts:["Monaco","Vatican City","San Marino","Liechtenstein"],a:1},
+{q:"Sahara Desert is on which continent?",opts:["Asia","S. America","Africa","Australia"],a:2},
+{q:"Which country is called the Land of the Rising Sun?",opts:["China","South Korea","Thailand","Japan"],a:3},
+{q:"Largest island in the world?",opts:["Borneo","Madagascar","Greenland","New Guinea"],a:2},
+{q:"How many continents are there?",opts:["5","6","7","8"],a:2},
+{q:"Tallest mountain in the world?",opts:["K2","Kangchenjunga","Everest","Lhotse"],a:2},
+{q:"Which country has the most islands?",opts:["Indonesia","Philippines","Sweden","Japan"],a:2},
+{q:"What is the capital of France?",opts:["Lyon","Marseille","Paris","Nice"],a:2},
+{q:"Which is the smallest ocean?",opts:["Atlantic","Indian","Arctic","Southern"],a:2},
+{q:"The Amazon River flows through which continent?",opts:["Asia","Africa","S. America","N. America"],a:2},
+{q:"Which country has the largest land area?",opts:["USA","Canada","China","Russia"],a:3},
+{q:"Capital of Japan?",opts:["Osaka","Kyoto","Tokyo","Hiroshima"],a:2},
+{q:"The Great Wall is located in which country?",opts:["Japan","Korea","China","Mongolia"],a:2},
+{q:"The Nile river is on which continent?",opts:["Asia","Africa","Europe","S. America"],a:1},
+{q:"Capital of Canada?",opts:["Toronto","Vancouver","Montreal","Ottawa"],a:3},
+{q:"The Dead Sea primarily borders which country?",opts:["Egypt","Jordan","Iraq","Syria"],a:1},
+{q:"Which is the longest mountain range on land?",opts:["Himalayas","Alps","Andes","Rockies"],a:2},
+],
+"Pop Culture":[
+{q:"Highest-grossing film ever (unadjusted)?",opts:["Titanic","Avatar","Endgame","Star Wars"],a:1},
+{q:"Who wrote the Harry Potter series?",opts:["Stephen King","J.K. Rowling","Tolkien","G.R.R. Martin"],a:1},
+{q:"First iPhone was released in which year?",opts:["2005","2006","2007","2008"],a:2},
+{q:"Band behind 'Bohemian Rhapsody'?",opts:["Beatles","Led Zeppelin","Queen","Pink Floyd"],a:2},
+{q:"Year YouTube was founded?",opts:["2003","2005","2007","2009"],a:1},
+{q:"Who created Facebook?",opts:["Elon Musk","Zuckerberg","Jeff Bezos","Bill Gates"],a:1},
+{q:"Nintendo's flagship home/portable console?",opts:["Xbox","PlayStation","Switch","Steam Deck"],a:2},
+{q:"Mario's brother?",opts:["Wario","Luigi","Toad","Yoshi"],a:1},
+{q:"Movie featuring the character Simba?",opts:["Bambi","Jungle Book","Lion King","Tarzan"],a:2},
+{q:"Batman's butler?",opts:["Jarvis","Alfred","Watson","Jeeves"],a:1},
+{q:"What is Iron Man's real name?",opts:["Bruce Wayne","Tony Stark","Peter Parker","Steve Rogers"],a:1},
+{q:"Friends was set in which city?",opts:["Los Angeles","Chicago","New York","Boston"],a:2},
+{q:"Who played Hermione Granger in the Harry Potter films?",opts:["Keira Knightley","Emma Stone","Emma Watson","Helena Bonham Carter"],a:2},
+{q:"Who developed the game Fortnite?",opts:["Activision","Rockstar","Epic Games","Ubisoft"],a:2},
+{q:"Squid Game is from which country?",opts:["Japan","China","Thailand","South Korea"],a:3},
+{q:"Who sang the hit song 'Bad Guy'?",opts:["Ariana Grande","Dua Lipa","Billie Eilish","Taylor Swift"],a:2},
+{q:"Who provides the voice of Shrek?",opts:["Will Smith","Jim Carrey","Mike Myers","Eddie Murphy"],a:2},
+{q:"The Kirby video game series is made by?",opts:["Nintendo","Sega","Sony","Capcom"],a:0},
+{q:"Who is Spider-Man's aunt?",opts:["Aunt May","Aunt Martha","Aunt Bea","Aunt June"],a:0},
+{q:"K-pop music originates from which country?",opts:["Japan","China","South Korea","Thailand"],a:2},
+],
+Tech:[
+{q:"What does HTTP stand for?",opts:["HyperText Transfer Protocol","High Tech Transfer Process","Hyper Transfer Text Protocol","Home Tool Transfer Protocol"],a:0},
+{q:"Who is considered the father of computers?",opts:["Turing","Babbage","von Neumann","Lovelace"],a:1},
+{q:"Most widely used web programming language?",opts:["Python","Java","JavaScript","C++"],a:2},
+{q:"What does AI stand for?",opts:["Auto Intelligence","Artificial Intelligence","Advanced Integration","Applied Informatics"],a:1},
+{q:"Who developed the Android operating system?",opts:["Apple","Microsoft","Google","Samsung"],a:2},
+{q:"How many bits are in a byte?",opts:["4","6","8","16"],a:2},
+{q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Reference Link","Unified Resource Link"],a:1},
+{q:"Who makes the iPhone?",opts:["Samsung","Google","Apple","Huawei"],a:2},
+{q:"The World Wide Web was invented in which year?",opts:["1985","1989","1993","1997"],a:1},
+{q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Module","Rapid App Memory","Run Access Mode"],a:0},
+{q:"What does CSS stand for?",opts:["Computer Style Sheet","Cascading Style Sheet","Creative Style System","Coded Style Sheet"],a:1},
+{q:"Which company created the Windows operating system?",opts:["Apple","Google","Microsoft","IBM"],a:2},
+{q:"Swift is a programming language created by?",opts:["Google","Microsoft","Apple","Meta"],a:2},
+{q:"What does CPU stand for?",opts:["Central Processing Unit","Computer Power Unit","Core Processing Utility","Central Program Unit"],a:0},
+{q:"What does GPU stand for?",opts:["General Processing Unit","Graphics Programming Unit","Graphics Processing Unit","General Purpose Utility"],a:2},
+{q:"PlayStation consoles are made by?",opts:["Nintendo","Microsoft","Sony","Sega"],a:2},
+{q:"What is Git primarily used for?",opts:["Database management","Version control","Web hosting","UI design"],a:1},
+{q:"IoT stands for?",opts:["Internet of Technology","Internet of Things","Integrated Online Tech","Interface of Things"],a:1},
+{q:"JavaScript is standardized under the name?",opts:["Java","ECMAScript","TypeScript","JScript"],a:1},
+{q:"HTML is primarily used for?",opts:["Styling web pages","Database queries","Web page structure","Backend logic"],a:2},
+],
 };
+
 const QH={
-Science:[{q:"Heisenberg Uncertainty Principle is about?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},{q:"Most abundant atmospheric gas?",opts:["Oxygen","Nitrogen","CO₂","Argon"],a:1},{q:"Absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},{q:"Particle with no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},{q:"Carbon-14 half-life?",opts:["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],a:1},{q:"Vitamin from sunlight?",opts:["Vit A","Vit B12","Vit C","Vit D"],a:3},{q:"Star collapse → black hole cause?",opts:["Fission","Gravitational collapse","Fusion","Thermal expansion"],a:1},{q:"Chandrasekhar limit is?",opts:["Max white dwarf mass","Speed of light","Planck length","Bohr radius"],a:0},{q:"pH of pure water?",opts:["5","7","8","6"],a:1},{q:"Beta decay emits?",opts:["Alpha particle","Electron/positron","Neutron","Photon"],a:1}],
-History:[{q:"Treaty of Westphalia ended?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},{q:"Last Mughal Emperor?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},{q:"D-Day code name?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},{q:"Rosetta Stone deciphered?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},{q:"Who led Salt March 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},{q:"Magna Carta year?",opts:["1066","1215","1315","1492"],a:1},{q:"Ottoman Empire fell after?",opts:["Crimean War","Balkan Wars","WWI","WWII"],a:2},{q:"Who wrote Art of War?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto"],a:1},{q:"Eastern Roman Empire = ?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},{q:"Silk Road → which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2}],
-Geography:[{q:"Deepest ocean point?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},{q:"Most time zones country?",opts:["Russia","USA","France","China"],a:2},{q:"Driest continent?",opts:["Africa","Australia","Antarctica","Asia"],a:2},{q:"Lake Baikal country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},{q:"Strait: Europe↔Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosporus"],a:2},{q:"Largest desert by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},{q:"Most spoken native language?",opts:["English","Spanish","Mandarin","Hindi"],a:2},{q:"Never colonized African country?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},{q:"Country on two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3}],
-"Pop Culture":[{q:"First Best Picture Oscar?",opts:["Sunrise","Wings","Jazz Singer","Metropolis"],a:1},{q:"Created Sherlock Holmes?",opts:["Christie","Conan Doyle","Poe","Dickens"],a:1},{q:"First game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},{q:"First animated feature film?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},{q:"Directed Parasite (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},{q:"Best-selling game ever?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},{q:"Netflix first original?",opts:["Stranger Things","House of Cards","OITNB","Narcos"],a:1},{q:"Highest MAL rated anime?",opts:["AoT","FMA:B","Steins;Gate","Gintama"],a:1},{q:"Spotify launched?",opts:["2006","2008","2010","2012"],a:1},{q:"Interstellar composer?",opts:["J. Williams","H. Zimmer","H. Shore","D. Elfman"],a:1}],
-Tech:[{q:"Invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},{q:"Binary search complexity?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},{q:"Haskell's paradigm?",opts:["OOP","Procedural","Functional","Logic"],a:2},{q:"First microprocessor maker?",opts:["AMD","Intel","IBM","Motorola"],a:1},{q:"OSI routing layer?",opts:["Transport","Network","Data Link","Session"],a:1},{q:"Bitcoin consensus?",opts:["Proof of Stake","Proof of Work","Delegated","Authority"],a:1},{q:"CUDA stands for?",opts:["Compute Unified Device Arch","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],a:0},{q:"LIDAR stands for?",opts:["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],a:0},{q:"Linux kernel language?",opts:["C++","C","Assembly","Rust"],a:1},{q:"API stands for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0}],
+Science:[
+{q:"Heisenberg Uncertainty Principle concerns?",opts:["Energy conservation","Position & momentum","Wave-particle duality","Quantum entanglement"],a:1},
+{q:"Most abundant gas in Earth's atmosphere?",opts:["Oxygen","Nitrogen","CO₂","Argon"],a:1},
+{q:"Absolute zero in Celsius?",opts:["-273.15°C","-260°C","-300°C","-100°C"],a:0},
+{q:"Subatomic particle with no electric charge?",opts:["Proton","Electron","Neutron","Positron"],a:2},
+{q:"Carbon-14 has a half-life of approximately?",opts:["2,730 yrs","5,730 yrs","11,460 yrs","1,200 yrs"],a:1},
+{q:"Which vitamin does the body synthesize from sunlight?",opts:["Vit A","Vit B12","Vit C","Vit D"],a:3},
+{q:"What causes a star to collapse into a black hole?",opts:["Nuclear fission","Gravitational collapse","Fusion runaway","Thermal expansion"],a:1},
+{q:"The Chandrasekhar limit defines the maximum mass of?",opts:["A white dwarf","A neutron star","A red giant","A brown dwarf"],a:0},
+{q:"pH of pure water at 25°C?",opts:["5","7","8","6"],a:1},
+{q:"Beta decay results in the emission of?",opts:["Alpha particle","Electron or positron","Neutron","Photon"],a:1},
+{q:"The Higgs boson is associated with which field?",opts:["Electromagnetic","Gravitational","Higgs","Nuclear strong"],a:2},
+{q:"CRISPR-Cas9 is a tool used for?",opts:["Gene editing","Drug synthesis","Protein folding","Cell division"],a:0},
+{q:"Schrödinger's equation describes?",opts:["Quantum state evolution","Relativistic energy","Thermodynamic entropy","Electromagnetic waves"],a:0},
+{q:"Hawking radiation is emitted by?",opts:["Neutron stars","Pulsars","Black holes","Quasars"],a:2},
+{q:"A coulomb is the SI unit of?",opts:["Resistance","Electric charge","Voltage","Inductance"],a:1},
+],
+History:[
+{q:"The Treaty of Westphalia (1648) ended which war?",opts:["Hundred Years' War","Thirty Years' War","Seven Years' War","Napoleonic Wars"],a:1},
+{q:"Who was the last Mughal Emperor of India?",opts:["Aurangzeb","Bahadur Shah II","Shah Jahan","Akbar II"],a:1},
+{q:"The D-Day Normandy invasion (1944) was code-named?",opts:["Op. Torch","Op. Overlord","Op. Barbarossa","Op. Market Garden"],a:1},
+{q:"The Rosetta Stone helped decipher which ancient script?",opts:["Cuneiform","Hieroglyphics","Sanskrit","Linear B"],a:1},
+{q:"Who led the Salt March of 1930?",opts:["Nehru","Gandhi","Bose","Patel"],a:1},
+{q:"The Magna Carta was signed in which year?",opts:["1066","1215","1315","1492"],a:1},
+{q:"The Ottoman Empire fell after which conflict?",opts:["Crimean War","Balkan Wars","World War I","World War II"],a:2},
+{q:"Who wrote 'The Art of War'?",opts:["Confucius","Sun Tzu","Lao Tzu","Miyamoto Musashi"],a:1},
+{q:"The Eastern Roman Empire is also known as?",opts:["Persian","Byzantine","Holy Roman","Assyrian"],a:1},
+{q:"The Silk Road's eastern terminus was which city?",opts:["Delhi","Baghdad","Chang'an","Constantinople"],a:2},
+{q:"The Peloponnesian War was fought between?",opts:["Rome & Carthage","Athens & Sparta","Persia & Greece","Macedon & Persia"],a:1},
+{q:"The Battle of Hastings took place in?",opts:["1066","1215","1415","1588"],a:0},
+{q:"The Meiji Restoration occurred in which country?",opts:["China","Korea","Japan","Vietnam"],a:2},
+{q:"The Treaty of Versailles was signed in?",opts:["1917","1918","1919","1920"],a:2},
+{q:"Rome's wars against Carthage were called the?",opts:["Gallic Wars","Punic Wars","Peloponnesian Wars","Persian Wars"],a:1},
+],
+Geography:[
+{q:"Earth's deepest ocean point?",opts:["Tonga Trench","Mariana Trench","Java Trench","Puerto Rico Trench"],a:1},
+{q:"Which country spans the most time zones?",opts:["Russia","USA","France","China"],a:2},
+{q:"Driest continent on Earth?",opts:["Africa","Australia","Antarctica","Asia"],a:2},
+{q:"Lake Baikal is located in which country?",opts:["Kazakhstan","Mongolia","Russia","China"],a:2},
+{q:"Which strait separates Europe from Africa?",opts:["Hormuz","Malacca","Gibraltar","Bosphorus"],a:2},
+{q:"The largest desert on Earth by area?",opts:["Sahara","Arabian","Antarctic","Gobi"],a:2},
+{q:"Most spoken native language in the world?",opts:["English","Spanish","Mandarin","Hindi"],a:2},
+{q:"Which African country was never colonized?",opts:["Kenya","Ethiopia","Nigeria","Ghana"],a:1},
+{q:"Longest mountain range on land?",opts:["Himalayas","Rockies","Andes","Alps"],a:2},
+{q:"Which country exists on two continents?",opts:["Egypt","Turkey","Russia","All of these"],a:3},
+{q:"The Bosphorus Strait separates which two continents?",opts:["Africa & Asia","N. & S. America","Europe & Asia","Europe & Africa"],a:2},
+{q:"Which country has the lowest population density?",opts:["Australia","Canada","Mongolia","Iceland"],a:2},
+{q:"Lake Titicaca borders which two countries?",opts:["Brazil & Argentina","Peru & Bolivia","Chile & Peru","Ecuador & Colombia"],a:1},
+{q:"The Coriolis effect primarily influences?",opts:["Ocean tides","Wind patterns","Ocean salinity","Mountain formation"],a:1},
+{q:"Which country has the most UNESCO World Heritage Sites?",opts:["China","Italy","Spain","France"],a:1},
+],
+"Pop Culture":[
+{q:"First film to win Best Picture at the Oscars?",opts:["Sunrise","Wings","Jazz Singer","Metropolis"],a:1},
+{q:"Who created Sherlock Holmes?",opts:["Christie","Conan Doyle","Poe","Dickens"],a:1},
+{q:"First video game played in space?",opts:["Tetris","Pong","Space Invaders","Pac-Man"],a:0},
+{q:"First animated feature film?",opts:["Snow White","Fantasia","Pinocchio","El Apóstol"],a:3},
+{q:"Who directed the film Parasite (2019)?",opts:["Park Chan-wook","Bong Joon-ho","Kim Ki-duk","Lee Chang-dong"],a:1},
+{q:"Best-selling video game of all time?",opts:["GTA V","Tetris","Minecraft","Wii Sports"],a:2},
+{q:"Netflix's first original series?",opts:["Stranger Things","House of Cards","OITNB","Narcos"],a:1},
+{q:"Highest-rated anime on MyAnimeList?",opts:["Attack on Titan","Fullmetal Alchemist: Brotherhood","Steins;Gate","Gintama"],a:1},
+{q:"Year Spotify was launched?",opts:["2006","2008","2010","2012"],a:1},
+{q:"Who composed the Interstellar soundtrack?",opts:["John Williams","Hans Zimmer","Howard Shore","Danny Elfman"],a:1},
+{q:"Blade Runner is based on a novel by?",opts:["Isaac Asimov","Philip K. Dick","Ray Bradbury","Arthur C. Clarke"],a:1},
+{q:"Twin Peaks was created by?",opts:["Steven Spielberg","David Lynch","Martin Scorsese","Ridley Scott"],a:1},
+{q:"Seven Samurai (1954) directly inspired which Western?",opts:["High Noon","The Good The Bad & The Ugly","The Magnificent Seven","Stagecoach"],a:2},
+{q:"The game Disco Elysium was developed by?",opts:["CD Projekt Red","Larian Studios","ZA/UM","Supergiant Games"],a:2},
+{q:"Akira Kurosawa is celebrated for contributions to?",opts:["Italian neorealism","Japanese cinema","French New Wave","Hollywood westerns"],a:1},
+],
+Tech:[
+{q:"Who invented the World Wide Web?",opts:["Vint Cerf","Tim Berners-Lee","Bill Gates","Steve Jobs"],a:1},
+{q:"Binary search time complexity?",opts:["O(n)","O(log n)","O(n²)","O(1)"],a:1},
+{q:"Haskell is primarily which programming paradigm?",opts:["OOP","Procedural","Functional","Logic"],a:2},
+{q:"Who made the first commercial microprocessor?",opts:["AMD","Intel","IBM","Motorola"],a:1},
+{q:"Which OSI layer handles routing?",opts:["Transport","Network","Data Link","Session"],a:1},
+{q:"Bitcoin uses which consensus mechanism?",opts:["Proof of Stake","Proof of Work","Delegated","Authority"],a:1},
+{q:"CUDA stands for?",opts:["Compute Unified Device Architecture","Central Unit Data Access","Compiled Universal Driver","Core Unified Data Arch"],a:0},
+{q:"LIDAR stands for?",opts:["Light Detection And Ranging","Laser Imaging Detection","Light Integrated Data","Laser Infrared Detection"],a:0},
+{q:"The Linux kernel is primarily written in?",opts:["C++","C","Assembly","Rust"],a:1},
+{q:"API stands for?",opts:["Application Programming Interface","Advanced Protocol Integration","Application Process Integration","Automated Program Interface"],a:0},
+{q:"A race condition occurs when?",opts:["CPU overheats","Code output depends on execution timing","Memory overflows","Network packets collide"],a:1},
+{q:"RSA encryption relies on the difficulty of?",opts:["Elliptic curve math","Prime factorization","Hash collisions","Symmetric key exchange"],a:1},
+{q:"A cold boot attack targets?",opts:["BIOS firmware","RAM contents after power loss","Hard drive encryption","Network packets"],a:1},
+{q:"CAP theorem says a distributed system can't guarantee all of?",opts:["Cost, Access, Performance","Consistency, Availability, Partition tolerance","CPU, API, Protocol","Cache, Auth, Privacy"],a:1},
+{q:"SIMD stands for?",opts:["Single Instruction Multiple Data","Synchronized Input Memory Dispatch","Serial Interface Module Design","Single Integrated Memory Device"],a:0},
+],
+};
+
+// ═══════════════════════════════════════
+// TRIVIA DATA — 3 articles per category
+// ═══════════════════════════════════════
+const TRIVIA_DATA={
+Science:[
+{title:"DNA Double Helix",emoji:"🧬",content:"In 1953, Watson and Crick — building on Rosalind Franklin's X-ray data — discovered DNA has a double helix structure: two strands wound like a twisted ladder. Each rung is a base pair: adenine with thymine, cytosine with guanine. This breakthrough unlocked modern genetics and molecular biology.",funFacts:["A single human cell contains ~2 meters of DNA, yet fits inside a nucleus just 6 micrometers wide.","If you uncoiled all DNA in your body, it would stretch to Pluto and back — twice!","DNA replication is 99.999999% accurate; the rare mistakes that slip through drive evolution."],reward:"Science Pioneer"},
+{title:"Black Holes",emoji:"⚫",content:"A black hole forms when a massive star collapses under its own gravity, creating a region where gravity is so intense that nothing — not even light — can escape past the event horizon. Supermassive black holes, millions of times the mass of our Sun, lurk at the centres of most galaxies.",funFacts:["Sagittarius A*, the Milky Way's central black hole, has a mass of 4 million suns.","Time moves slower near a black hole due to gravitational time dilation — predicted by Einstein in 1915.","Hawking radiation suggests black holes slowly evaporate over trillions of years by emitting quantum particles."],reward:"Cosmic Explorer"},
+{title:"CRISPR Revolution",emoji:"✂️",content:"CRISPR-Cas9 is a revolutionary gene-editing tool adapted from a bacterial immune system. A guide RNA leads the Cas9 protein to a precise DNA location, which it cuts. Scientists can then insert, delete, or correct genes with unprecedented accuracy — opening doors to curing genetic diseases.",funFacts:["CRISPR was first observed in bacteria in 1987 but its editing potential wasn't realised until 2012.","Jennifer Doudna and Emmanuelle Charpentier won the 2020 Nobel Prize in Chemistry for CRISPR-Cas9.","Clinical trials are testing CRISPR to treat sickle cell disease, certain cancers, and HIV."],reward:"Biotech Visionary"},
+],
+History:[
+{title:"The Colosseum",emoji:"🏛️",content:"Rome's Colosseum, completed in 80 AD, held up to 80,000 spectators. It hosted gladiatorial contests, animal hunts, public executions, and mock sea battles. Its sophisticated engineering — 80 entrances, a retractable awning, an underground hypogeum — influenced stadium design for two millennia.",funFacts:["Construction took just 10 years (70–80 AD), an astonishing feat for ancient engineering.","The Colosseum had 80 entrances and could be fully evacuated in just 3 minutes.","Historians still debate whether the Roman 'thumbs up' gesture meant life or death in the arena."],reward:"Ancient Rome Scholar"},
+{title:"The Silk Road",emoji:"🐪",content:"The Silk Road was not a single road but a network of trade routes connecting China to Rome, spanning over 6,400 km. Active from 130 BC to 1450 AD, it carried silk, spices, glassware, and paper — but also Buddhism, Islam, the Black Death, and ideas that transformed civilisations.",funFacts:["The name 'Silk Road' was coined only in 1877 by German geographer Ferdinand von Richthofen.","Paper and gunpowder travelled westward along the Silk Road, transforming European civilisation.","Camel caravans carried up to 500 kg per animal and travelled roughly 30–40 km per day."],reward:"Trade Route Master"},
+{title:"Library of Alexandria",emoji:"📜",content:"The Great Library of Alexandria, founded around 285 BC in Egypt, was the ancient world's foremost seat of learning. At its peak it held up to 700,000 scrolls — works by Aristotle, Euclid, and Archimedes. Its destruction through multiple events symbolises the fragility of accumulated knowledge.",funFacts:["Eratosthenes used Library resources to calculate Earth's circumference with remarkable accuracy around 240 BC.","The Library paid copyists to duplicate every scroll from ships docked in Alexandria's harbour.","A daughter library called the Serapeum survived longer and held over 42,000 scrolls."],reward:"Knowledge Keeper"},
+],
+Geography:[
+{title:"Ring of Fire",emoji:"🌋",content:"The Pacific Ring of Fire is a 40,000 km horseshoe-shaped zone encircling the Pacific Ocean where 90% of the world's earthquakes occur and 75% of all volcanoes are found. It marks the edges of tectonic plates constantly colliding, sliding past, or diving beneath each other.",funFacts:["The Ring of Fire passes through 15 countries, including Chile, Japan, the Philippines, and the USA.","Indonesia sits on the Ring of Fire and has more active volcanoes than any other country — over 130.","The catastrophic 2004 Indian Ocean earthquake and tsunami occurred at the edge of the Ring of Fire."],reward:"Geology Expert"},
+{title:"Mariana Trench",emoji:"🌊",content:"The Mariana Trench in the western Pacific is Earth's deepest known point, reaching 11,034 metres at Challenger Deep. Pressure there is over 1,000 times sea level. Yet life exists — tube worms, sea cucumbers, and microbes thrive in the crushing darkness without sunlight.",funFacts:["If Everest were placed in the trench, its peak would still be over 2 km underwater.","Only three people have reached Challenger Deep: Piccard (1960), Cameron (2012), and Vescovo (2019).","The trench is ~2,550 km long but averages only 69 km wide — roughly the length of California."],reward:"Deep Sea Pioneer"},
+{title:"Aurora Borealis",emoji:"🌌",content:"The Northern Lights occur when charged particles from the Sun's solar wind collide with gases in Earth's atmosphere near the magnetic poles. Different gases create different colours: oxygen at 60–150 miles makes green/yellow; oxygen at higher altitudes makes red; nitrogen makes blue/purple.",funFacts:["Aurora Borealis and Aurora Australis occur simultaneously as mirror images of each other.","Viking mythology attributed the auroras to the shields of Valkyries escorting fallen warriors to Valhalla.","Auroras can intensify suddenly due to magnetic reconnection — plasma explosions in Earth's magnetosphere."],reward:"Sky Watcher"},
+],
+"Pop Culture":[
+{title:"Christopher Nolan",emoji:"🎬",content:"Christopher Nolan is celebrated for films that challenge perceptions of time and reality. From Memento's reverse chronology and Inception's dream-within-dreams to Interstellar's relativistic time dilation, Nolan fuses cinematic spectacle with genuine scientific ideas to create modern classics.",funFacts:["Nolan grew a real cornfield for Interstellar — then harvested and sold the corn for profit after filming.","Nolan refuses to use email or own a smartphone, communicating via traditional methods.","The spinning top ending of Inception is deliberately ambiguous — Nolan never confirms Cobb's reality."],reward:"Cinephile"},
+{title:"Evolution of Video Games",emoji:"🎮",content:"Video games evolved from Pong's two rectangles in 1972 to photorealistic open worlds in five decades. Atari brought games home, Nintendo revived the industry after the 1983 crash, and PlayStation made 3D standard. Today games generate more revenue than the film and music industries combined.",funFacts:["Spacewar! (1962) is widely considered the first influential computer game.","Minecraft has sold over 300 million copies, making it the best-selling game in history as of 2024.","The average age of a gamer today is 35, shattering the stereotype of gaming as a teenage hobby."],reward:"Gaming Historian"},
+{title:"Studio Ghibli",emoji:"✨",content:"Studio Ghibli, co-founded by Hayao Miyazaki and Isao Takahata in 1985, produces hand-drawn animated films celebrated for rich worlds and emotional depth. Spirited Away (2001) became the first anime film to win the Academy Award for Best Animated Feature, and its 170,000 hand-drawn cels set an enduring standard.",funFacts:["Ghibli was founded with profits from Nausicaä (1984), which predates the studio itself.","Miyazaki draws key frames by hand himself, averaging 70,000 storyboard panels per film.","The Ghibli Museum in Mitaka, Japan, features rooms designed to make visitors feel inside a Ghibli film."],reward:"Animation Fan"},
+],
+Tech:[
+{title:"Birth of the Internet",emoji:"💻",content:"The internet evolved from ARPANET, a 1969 US military network. The key leap came in 1983 when TCP/IP became the universal protocol. Tim Berners-Lee then invented the World Wide Web in 1989, building the user-friendly layer that opened the internet to the public.",funFacts:["The first ARPANET message was 'LO' — the system crashed after two letters trying to send 'LOGIN'.","Email predates the World Wide Web by about 20 years; the first email was sent in 1971.","By 2024, over 5.4 billion people — ~67% of Earth's population — use the internet."],reward:"Net Pioneer"},
+{title:"How AI Learns",emoji:"🤖",content:"Modern AI uses neural networks — layers of mathematical nodes inspired by the brain. During training, billions of numerical weights are adjusted through backpropagation to minimise errors. Large Language Models have over a trillion parameters tuned on internet-scale text, enabling them to generate human-like responses.",funFacts:["AlphaGo's 2016 move 37 against Lee Sedol was so unconventional commentators thought it was a mistake — it won.","The word 'robot' was coined by Czech writer Karel Čapek in his 1921 play R.U.R.","GPT-4 was trained on ~13 trillion tokens — roughly equivalent to 10 million books' worth of text."],reward:"AI Scholar"},
+{title:"Cryptography",emoji:"🔐",content:"Cryptography protects communications through mathematics. The ancient Caesar cipher shifted letters; modern RSA encryption relies on the near-impossibility of factoring huge prime numbers. Public-key cryptography (1970s) lets two strangers exchange secrets over open networks — the foundation of all HTTPS traffic today.",funFacts:["Enigma's codes were broken by Alan Turing's Bombe machine, shortening WWII by an estimated 2 years.","The one-time pad is the only mathematically proven unbreakable cipher — but the key must be as long as the message.","Quantum computers threaten RSA, prompting NIST to standardise post-quantum cryptography algorithms in 2024."],reward:"Crypto Expert"},
+],
 };
 
 const CATS=Object.keys(QE);
@@ -587,6 +565,186 @@ const LS="quiz_blitz_save";
 const load=()=>{try{return JSON.parse(localStorage.getItem(LS))||null}catch{return null}};
 const save=d=>{try{localStorage.setItem(LS,JSON.stringify(d))}catch{}};
 
+// ═══════════════════════════════════════
+// TRIVIA REWARD COMPONENT
+// ═══════════════════════════════════════
+const TriviaReward=({content,cat,onClose,theme,catCol,coinsEarned,xpEarned})=>(
+  <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.93)',zIndex:200,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'16px',animation:'triviaReveal .5s ease',overflowY:'auto'}}>
+    <div style={{maxWidth:440,width:'100%',background:theme.cardBg,borderRadius:20,padding:'24px 20px',border:`1px solid ${catCol}44`,boxShadow:`0 0 60px ${catCol}22`}}>
+      <div style={{textAlign:'center',marginBottom:16}}>
+        <div style={{fontSize:48,marginBottom:8}}>{content.emoji}</div>
+        <div style={{fontSize:11,letterSpacing:3,color:catCol,fontWeight:700,textTransform:'uppercase',marginBottom:6}}>⚡ PERFECT 10 UNLOCKED</div>
+        <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:20,color:theme.textPrimary,lineHeight:1.3}}>{content.title}</div>
+        <div style={{fontSize:12,color:catCol,marginTop:4}}>{CI[cat]} {cat}</div>
+      </div>
+      <div style={{fontSize:13,color:theme.textSecondary,lineHeight:1.7,marginBottom:16,background:theme.border+'33',borderRadius:12,padding:'12px 14px'}}>{content.content}</div>
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:10,letterSpacing:2,color:catCol,fontWeight:700,textTransform:'uppercase',marginBottom:8}}>FUN FACTS</div>
+        {content.funFacts.map((f,i)=><div key={i} style={{fontSize:12,color:theme.textPrimary,padding:'7px 0',borderBottom:i<2?`1px solid ${theme.border}`:''}}><span style={{color:catCol,fontWeight:700,marginRight:6}}>#{i+1}</span>{f}</div>)}
+      </div>
+      <div style={{display:'flex',gap:10,marginBottom:16}}>
+        <div style={{flex:1,background:catCol+'18',borderRadius:10,padding:'10px',textAlign:'center'}}>
+          <div style={{fontSize:20,fontWeight:800,color:catCol,animation:'coinPop .5s ease'}}>+{coinsEarned} 🪙</div>
+          <div style={{fontSize:10,color:theme.textSecondary}}>Bonus Coins</div>
+        </div>
+        <div style={{flex:1,background:theme.accent+'18',borderRadius:10,padding:'10px',textAlign:'center'}}>
+          <div style={{fontSize:20,fontWeight:800,color:theme.accent}}>+{xpEarned} XP</div>
+          <div style={{fontSize:10,color:theme.textSecondary}}>Level Bonus</div>
+        </div>
+      </div>
+      <button onClick={onClose} style={{width:'100%',padding:'14px',background:`linear-gradient(135deg,${catCol},${catCol}CC)`,border:'none',borderRadius:12,cursor:'pointer',fontSize:15,fontWeight:800,color:theme.bg,fontFamily:"'Outfit',sans-serif"}}>Awesome! Continue →</button>
+    </div>
+  </div>
+);
+
+// ═══════════════════════════════════════
+// SNAKE & LADDER GAME COMPONENT
+// ═══════════════════════════════════════
+const SnakeLadderGame=({theme,onClose,onResult,coins})=>{
+  const [pPos,setPPos]=useState(0);
+  const [aPos,setAPos]=useState(0);
+  const [rolling,setRolling]=useState(false);
+  const [dice,setDice]=useState(null);
+  const [msg,setMsg]=useState("Roll the dice to start! You're 🔵, AI is 🔴");
+  const [phase,setPhase]=useState('player');// player | ai | done
+  const [winner,setWinner]=useState(null);
+  const pRef=useRef(0);const aRef=useRef(0);
+
+  const setP=v=>{pRef.current=v;setPPos(v);};
+  const setA=v=>{aRef.current=v;setAPos(v);};
+
+  const boardCells=useMemo(()=>{
+    const cells=[];
+    for(let dRow=0;dRow<10;dRow++){
+      const bRow=9-dRow;
+      for(let col=0;col<10;col++){
+        const bCol=bRow%2===0?col:9-col;
+        const sq=bRow*10+bCol+1;
+        cells.push({sq,dRow,col});
+      }
+    }
+    return cells;
+  },[]);
+
+  const sqCenter=useCallback(num=>{
+    const bRow=Math.floor((num-1)/10);
+    const bCol=bRow%2===0?(num-1)%10:9-(num-1)%10;
+    const dRow=9-bRow;
+    return{x:(bCol+0.5)*10,y:(dRow+0.5)*10};
+  },[]);
+
+  const resolveMove=useCallback((cur,roll,isPlayer)=>{
+    let next=cur+roll;
+    if(next>100)next=cur;
+    let note='';
+    if(SNAKES[next]!==undefined){note=`🐍 Snake! ${next}→${SNAKES[next]}`;next=SNAKES[next];sfx.snakeBite();}
+    else if(LADDERS[next]!==undefined){note=`🪜 Ladder! ${next}→${LADDERS[next]}`;next=LADDERS[next];sfx.ladderClimb();}
+    return{next,note};
+  },[]);
+
+  const doPlayerTurn=useCallback(()=>{
+    if(rolling||phase!=='player')return;
+    sfx.init();sfx.diceRoll();
+    setRolling(true);setDice('?');
+    let flashes=0;
+    const iv=setInterval(()=>{
+      setDice(['⚀','⚁','⚂','⚃','⚄','⚅'][Math.floor(Math.random()*6)]);
+      flashes++;
+      if(flashes>=8){
+        clearInterval(iv);
+        const roll=Math.floor(Math.random()*6)+1;
+        const face=['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1];
+        setDice(face);
+        const{next,note}=resolveMove(pRef.current,roll,true);
+        setP(next);
+        if(next>=100){setMsg('🎉 You win! 🎉');setPhase('done');setWinner('player');setRolling(false);return;}
+        setMsg(note||`You rolled ${roll}! Moved to square ${next}.`);
+        setRolling(false);setPhase('ai');
+        setTimeout(()=>doAiTurn(),1200);
+      }
+    },80);
+  },[rolling,phase,resolveMove]);
+
+  const doAiTurn=useCallback(()=>{
+    sfx.diceRoll();
+    const roll=Math.floor(Math.random()*6)+1;
+    const face=['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1];
+    setTimeout(()=>{
+      setDice(face);
+      const{next,note}=resolveMove(aRef.current,roll,false);
+      setA(next);
+      if(next>=100){setMsg('🔴 AI wins! Better luck next time.');setPhase('done');setWinner('ai');return;}
+      setMsg((note?note+' ':'')+`AI rolled ${roll}, at square ${next}. Your turn!`);
+      setPhase('player');
+    },600);
+  },[resolveMove]);
+
+  const cellSize=32;
+  const boardSize=cellSize*10;
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:150,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'16px',overflowY:'auto'}}>
+      <div style={{maxWidth:440,width:'100%'}}>
+        <div style={{display:'flex',alignItems:'center',marginBottom:12}}>
+          <button onClick={onClose} style={{background:'none',border:'none',color:theme.textSecondary,cursor:'pointer',fontSize:14,padding:'8px 0',fontFamily:"'Outfit',sans-serif"}}>← Exit</button>
+          <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:18,color:theme.textPrimary,margin:'0 auto',paddingRight:40}}>🐍 Snake & Ladder</div>
+        </div>
+        <div style={{background:theme.cardBg,borderRadius:12,padding:'10px 14px',marginBottom:12,border:`1px solid ${theme.border}`,fontSize:12,color:theme.textSecondary,minHeight:36,textAlign:'center'}}>{msg}</div>
+
+        {/* Board */}
+        <div style={{position:'relative',width:'100%',aspectRatio:'1',marginBottom:12,userSelect:'none'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(10,1fr)',gridTemplateRows:'repeat(10,1fr)',width:'100%',height:'100%',border:`2px solid ${theme.border}`,borderRadius:8,overflow:'hidden',background:theme.cardBg}}>
+            {boardCells.map(({sq,dRow,col})=>{
+              const isSnakeHead=SNAKES[sq]!==undefined;const isLadderBot=LADDERS[sq]!==undefined;
+              const hasPl=pPos===sq;const hasAi=aPos===sq;
+              let cellBg=theme.bg;
+              if(isSnakeHead)cellBg='#FF444410';
+              if(isLadderBot)cellBg='#00E5A010';
+              if((dRow+col)%2===0)cellBg=cellBg==='#FF444410'?'#FF444418':isLadderBot?'#00E5A018':theme.cardBg+'88';
+              return <div key={sq} style={{background:cellBg,border:`1px solid ${theme.border}33`,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',position:'relative',fontSize:8,color:theme.textSecondary,fontWeight:600}}>
+                <div style={{fontSize:6,opacity:0.5,lineHeight:1}}>{sq}</div>
+                {isSnakeHead&&<div style={{fontSize:9,opacity:0.6}}>🐍</div>}
+                {isLadderBot&&<div style={{fontSize:9,opacity:0.6}}>🪜</div>}
+                {hasPl&&<div style={{fontSize:hasPl&&hasAi?10:13,animation:'tokenBounce 1s ease infinite',lineHeight:1}}>🔵</div>}
+                {hasAi&&<div style={{fontSize:hasPl&&hasAi?10:13,animation:'tokenBounce 1.2s ease .3s infinite',lineHeight:1}}>🔴</div>}
+              </div>;
+            })}
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:8,marginBottom:12,alignItems:'center'}}>
+          <div style={{flex:1,background:theme.cardBg,borderRadius:10,padding:'8px 12px',border:`1px solid ${theme.border}`,textAlign:'center'}}>
+            <div style={{fontSize:11,color:theme.textSecondary}}>🔵 You</div>
+            <div style={{fontSize:18,fontWeight:800,color:theme.accent}}>Sq {pPos||'—'}</div>
+          </div>
+          <div style={{fontSize:28}}>{dice||'🎲'}</div>
+          <div style={{flex:1,background:theme.cardBg,borderRadius:10,padding:'8px 12px',border:`1px solid ${theme.border}`,textAlign:'center'}}>
+            <div style={{fontSize:11,color:theme.textSecondary}}>🔴 AI</div>
+            <div style={{fontSize:18,fontWeight:800,color:'#FF6B6B'}}>Sq {aPos||'—'}</div>
+          </div>
+        </div>
+
+        {phase==='done'?(
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{background:winner==='player'?theme.accent+'15':'#FF444415',border:`1px solid ${winner==='player'?theme.accent+'44':'#FF444444'}`,borderRadius:12,padding:'14px',textAlign:'center'}}>
+              <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:22,color:winner==='player'?theme.accent:'#FF6B6B',marginBottom:4}}>{winner==='player'?'You Win! 🏆':'AI Wins 🤖'}</div>
+              <div style={{fontSize:13,color:theme.textSecondary}}>Reward: <span style={{color:'#FFE66D',fontWeight:700}}>{winner==='player'?`+${Math.floor(100+Math.random()*100)} 🪙`:'+20 🪙'}</span></div>
+            </div>
+            <button onClick={()=>onResult(winner)} style={{width:'100%',padding:'14px',background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:'none',borderRadius:12,cursor:'pointer',fontSize:15,fontWeight:800,color:theme.bg,fontFamily:"'Outfit',sans-serif"}}>Collect Reward</button>
+          </div>
+        ):(
+          <button onClick={doPlayerTurn} disabled={rolling||phase!=='player'} style={{width:'100%',padding:'16px',background:phase==='player'?`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`:'rgba(255,255,255,.05)',border:'none',borderRadius:12,cursor:phase==='player'?'pointer':'default',fontSize:16,fontWeight:800,color:phase==='player'?theme.bg:theme.textSecondary,transition:'all .2s',fontFamily:"'Outfit',sans-serif",opacity:rolling?0.7:1}}>
+            {rolling?'Rolling...':(phase==='player'?'🎲 Roll Dice':'⏳ AI Rolling...')}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════
+// MAIN APP COMPONENT
+// ═══════════════════════════════════════
 function App(){
   const sv=load();
   const[screen,setScreen]=useState("menu");
@@ -614,14 +772,47 @@ function App(){
   const[nu,setNu]=useState([]);
   const[shop,setShop]=useState(false);
   const[soundOn,setSoundOn]=useState(sv?.soundOn!==false);
+  // V3 new state
+  const[coins,setCoins]=useState(sv?.coins||0);
+  const[unlockedThemes,setUnlockedThemes]=useState(sv?.unlockedThemes||[]);
+  const[slWins,setSlWins]=useState(sv?.slWins||0);
+  const[slLosses,setSlLosses]=useState(sv?.slLosses||0);
+  const[showTrivia,setShowTrivia]=useState(false);
+  const[triviaContent,setTriviaContent]=useState(null);
+  const[triviaCat,setTriviaCat]=useState(null);
+  const[triviaXp,setTriviaXp]=useState(0);
+  const[triviaCoins,setTriviaCoins]=useState(0);
+  const[showSnakeLadder,setShowSnakeLadder]=useState(false);
+  const[slCooldown,setSlCooldown]=useState(()=>{
+    const last=parseInt(localStorage.getItem('sl_last')||'0');
+    const rem=COOLDOWN_MS-(Date.now()-last);
+    return rem>0?rem:0;
+  });
   const tr=useRef(null);const pr=useRef(null);const ambRef=useRef(null);
 
   const theme=THEMES.find(t=>t.id===tid)||THEMES[0];
-  const hard=lvl>=20;const tpq=hard?10:12;
 
-  useEffect(()=>{save({hs,tp,tid,lvl,xp,soundOn})},[hs,tp,tid,lvl,xp,soundOn]);
+  // Progressive difficulty
+  const getPool=useCallback(c=>{
+    const easy=QE[c]||[];const hard=QH[c]||[];
+    if(lvl>=30)return[...hard];
+    if(lvl>=20)return[...easy,...hard];
+    if(lvl>=10)return[...easy,...hard.slice(0,5)];
+    return easy;
+  },[lvl]);
+  const tpq=lvl>=30?8:lvl>=20?10:12;
+
+  // Save
+  useEffect(()=>{save({hs,tp,tid,lvl,xp,soundOn,coins,unlockedThemes,slWins,slLosses})},[hs,tp,tid,lvl,xp,soundOn,coins,unlockedThemes,slWins,slLosses]);
   useEffect(()=>{document.body.style.background=theme.bg},[theme]);
   useEffect(()=>{sfx.enabled=soundOn},[soundOn]);
+
+  // Cooldown timer
+  useEffect(()=>{
+    if(slCooldown<=0)return;
+    const iv=setInterval(()=>setSlCooldown(p=>{if(p<=1000){clearInterval(iv);return 0;}return p-1000;}),1000);
+    return()=>clearInterval(iv);
+  },[slCooldown]);
 
   // Ambient ping during game
   useEffect(()=>{
@@ -631,14 +822,12 @@ function App(){
     }else{clearInterval(ambRef.current);}
   },[screen,cat]);
 
-  const getPool=useCallback(c=>{
-    if(hard)return[...(QH[c]||[]),...(QE[c]||[])];return QE[c]||[];
-  },[hard]);
+  const addCoins=useCallback(n=>{setCoins(p=>p+n);sfx.coinEarn();},[]);
 
   const addXp=useCallback(amt=>{
     setXp(prev=>{
       let nx=prev+amt,nl=lvl,ul=[];
-      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl);ul=[...ul,...u];}
+      while(nx>=xpFor(nl)){nx-=xpFor(nl);nl++;const u=THEMES.filter(t=>t.unlockLevel===nl&&!t.free);ul=[...ul,...u];}
       if(nl>lvl){setLvl(nl);setSlu(true);sfx.levelUp();if(ul.length)setNu(ul);setTimeout(()=>{setSlu(false);setNu([])},3500);}
       return nx;
     });
@@ -675,6 +864,7 @@ function App(){
     setSel(idx);setSr(true);
     const ok=idx===qs[qi].a;
     setAh(p=>[...p,ok]);
+    const hard=lvl>=20;
     let ep=0;
     if(ok){
       sfx.correct();
@@ -690,57 +880,82 @@ function App(){
     }else{sfx.wrong();setStk(0);setMult(1);}
 
     setTimeout(()=>{
+      const finalCor=cor+(ok?1:0);
       if(qi+1>=qs.length){
         const fs=score+ep;if(fs>hs)setHs(fs);
         setTp(t=>t+1);
-        addXp(xpg+(ok?10+(hard?5:0):0));
-        sfx.gameOver(cor+(ok?1:0)>=7);
+        const xpEarned=xpg+(ok?10+(hard?5:0):0);
+        addXp(xpEarned);
+        sfx.gameOver(finalCor>=7);
+        // Perfect 10 reward
+        if(finalCor===QPR&&cat!=='Mixed'){
+          const pool=TRIVIA_DATA[cat];
+          const article=pool[Math.floor(Math.random()*pool.length)];
+          const bxp=lvl*20;const bc=50;
+          setTriviaContent(article);setTriviaCat(cat);setTriviaXp(bxp);setTriviaCoins(bc);
+          addXp(bxp);addCoins(bc);sfx.triviaUnlock();
+          setTimeout(()=>setShowTrivia(true),800);
+        }
         setScreen("result");
       }else{setQi(i=>i+1);setSel(null);setSr(false);setTl(tpq);}
     },1400);
+  };
+
+  const handleSlResult=winner=>{
+    localStorage.setItem('sl_last',Date.now().toString());
+    setSlCooldown(COOLDOWN_MS);
+    if(winner==='player'){
+      const reward=100+Math.floor(Math.random()*101);
+      addCoins(reward);setSlWins(w=>w+1);
+    }else{addCoins(20);setSlLosses(l=>l+1);}
+    setShowSnakeLadder(false);
   };
 
   const cQ=qs[qi];
   const catCol=cat&&CC[cat]?CC[cat]:theme.accent;
   const xpN=xpFor(lvl);const xpP=Math.min((xp/xpN)*100,100);
   const lt=TITLES[Math.min(lvl-1,TITLES.length-1)];
+  const hard=lvl>=20;
+  const fmtCd=ms=>{const m=Math.floor(ms/60000);const s=Math.floor((ms%60000)/1000);return`${m}:${s.toString().padStart(2,'0')}`;};
 
-  const Btn=({children,onClick,style:s,...p})=><button onClick={e=>{sfx.init();sfx.click();onClick?.(e)}} {...p}
-    style={{...s,fontFamily:"'Outfit',sans-serif"}}>{children}</button>;
+  const Btn=({children,onClick,style:s,...p})=><button onClick={e=>{sfx.init();sfx.click();onClick?.(e)}} {...p} style={{...s,fontFamily:"'Outfit',sans-serif"}}>{children}</button>;
+  const SoundToggle=()=><button onClick={()=>{sfx.init();setSoundOn(p=>!p);sfx.click()}} style={{position:'fixed',top:16,right:16,zIndex:90,background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:10,width:40,height:40,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,transition:'all .2s',fontFamily:"'Outfit',sans-serif"}}>{soundOn?'🔊':'🔇'}</button>;
 
-  const SoundToggle=()=><button onClick={()=>{sfx.init();setSoundOn(p=>!p);sfx.click()}} style={{
-    position:'fixed',top:16,right:16,zIndex:90,background:theme.cardBg,border:`1px solid ${theme.border}`,
-    borderRadius:10,width:40,height:40,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',
-    fontSize:18,transition:'all .2s',fontFamily:"'Outfit',sans-serif",
-  }}>{soundOn?'🔊':'🔇'}</button>;
-
+  // ─── THEME SHOP ───
   const ThemeShop=()=>(
     <div style={{paddingTop:32,animation:"fadeUp .5s ease"}}>
       <div style={{display:"flex",alignItems:"center",marginBottom:28}}>
         <Btn onClick={()=>setShop(false)} style={{background:"none",border:"none",color:theme.textSecondary,cursor:"pointer",fontSize:14,padding:"8px 0"}}>← Back</Btn>
-        <h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:24,color:theme.textPrimary,margin:"0 auto",paddingRight:40}}>Themes</h2>
+        <h2 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:22,color:theme.textPrimary,margin:"0 auto",paddingRight:40}}>Themes</h2>
       </div>
-      <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:24,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:40,height:40,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:18}}>{theme.emoji}</div>
-        <div><div style={{fontSize:14,fontWeight:700,color:theme.textPrimary}}>Current: {theme.name}</div>
-        <div style={{fontSize:12,color:theme.textSecondary}}>Level {lvl} — {lt}</div></div>
+      <div style={{background:theme.cardBg,borderRadius:14,padding:"12px 16px",marginBottom:16,border:`1px solid ${theme.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontSize:16}}>{theme.emoji}</div>
+          <div><div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{theme.name}</div><div style={{fontSize:11,color:theme.textSecondary}}>Level {lvl} — {lt}</div></div>
+        </div>
+        <div style={{textAlign:'right'}}><div style={{fontSize:14,fontWeight:800,color:'#FFE66D'}}>{coins} 🪙</div><div style={{fontSize:10,color:theme.textSecondary}}>coins</div></div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {THEMES.map((t,i)=>{
-          const ul=t.free||lvl>=t.unlockLevel;const ac=t.id===tid;
-          return <Btn key={t.id} onClick={()=>{if(ul){setTid(t.id);sfx.themeSelect();}}} style={{
-            background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,
-            borderRadius:14,padding:"16px 18px",cursor:ul?"pointer":"default",display:"flex",alignItems:"center",gap:14,
-            width:"100%",textAlign:"left",opacity:ul?1:.5,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`,
-          }}>
-            <div style={{width:48,height:48,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",bottom:4,right:4,fontSize:16}}>{t.emoji}</div></div>
+          const lvlUnlocked=t.free||lvl>=t.unlockLevel;
+          const coinUnlocked=unlockedThemes.includes(t.id);
+          const unlocked=lvlUnlocked||coinUnlocked;
+          const price=THEME_PRICES[t.id];
+          const canBuy=price&&!lvlUnlocked&&!coinUnlocked&&coins>=price;
+          const ac=t.id===tid;
+          return <Btn key={t.id} onClick={()=>{
+            if(unlocked){setTid(t.id);sfx.themeSelect();}
+            else if(canBuy){setCoins(c=>c-price);setUnlockedThemes(p=>[...p,t.id]);setTid(t.id);sfx.themeSelect();sfx.coinEarn();}
+          }} style={{background:ac?t.accent+"12":theme.cardBg,border:`1.5px solid ${ac?t.accent+"55":theme.border}`,borderRadius:14,padding:"14px 16px",cursor:(unlocked||canBuy)?"pointer":"default",display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",opacity:(!unlocked&&!canBuy)?.45:1,transition:"all .2s",animation:`fadeUp .4s ease ${i*.04}s both`}}>
+            <div style={{width:44,height:44,borderRadius:12,background:t.preview,border:`2px solid ${t.accent}33`,flexShrink:0,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",bottom:3,right:3,fontSize:14}}>{t.emoji}</div></div>
             <div style={{flex:1}}>
-              <div style={{fontSize:15,fontWeight:700,color:ul?theme.textPrimary:theme.textSecondary}}>{t.name}{ac&&<span style={{marginLeft:8,fontSize:11,color:t.accent}}>ACTIVE</span>}</div>
-              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{t.free?"Free":ul?"✓ Unlocked":`🔒 Level ${t.unlockLevel}`}</div>
+              <div style={{fontSize:14,fontWeight:700,color:unlocked?theme.textPrimary:theme.textSecondary}}>{t.name}{ac&&<span style={{marginLeft:8,fontSize:10,color:t.accent}}>ACTIVE</span>}</div>
+              <div style={{fontSize:11,color:theme.textSecondary,marginTop:2}}>{t.free?"Free":lvlUnlocked||coinUnlocked?"✓ Unlocked":price?`${price} 🪙 or Lv.${t.unlockLevel}`:`🔒 Lv.${t.unlockLevel}`}</div>
             </div>
-            {!ul&&<div style={{fontSize:12,fontWeight:700,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 10px"}}>Lv.{t.unlockLevel}</div>}
-            {ul&&!ac&&<div style={{fontSize:12,fontWeight:700,color:t.accent}}>SELECT</div>}
+            {canBuy&&<div style={{fontSize:12,fontWeight:700,color:'#FFE66D',background:'#FFE66D18',borderRadius:8,padding:"4px 10px"}}>BUY</div>}
+            {unlocked&&!ac&&<div style={{fontSize:12,fontWeight:700,color:t.accent}}>SELECT</div>}
+            {!unlocked&&!canBuy&&price&&<div style={{fontSize:11,color:theme.textSecondary,background:theme.border,borderRadius:8,padding:"4px 8px"}}>{price}🪙</div>}
           </Btn>;
         })}
       </div>
@@ -752,8 +967,13 @@ function App(){
       <div style={{position:"fixed",inset:0,background:theme.gradient,pointerEvents:"none",animation:"glowPulse 4s ease-in-out infinite"}}/>
       <SoundToggle/>
 
-      {/* Category animated background during game */}
       {screen==="game"&&cat&&cat!=="Mixed"&&<CategoryBg category={cat} color={catCol} bg={theme.bg}/>}
+
+      {/* Trivia Reward Overlay */}
+      {showTrivia&&triviaContent&&<TriviaReward content={triviaContent} cat={triviaCat} onClose={()=>setShowTrivia(false)} theme={theme} catCol={CC[triviaCat]||theme.accent} coinsEarned={triviaCoins} xpEarned={triviaXp}/>}
+
+      {/* Snake & Ladder */}
+      {showSnakeLadder&&<SnakeLadderGame theme={theme} onClose={()=>setShowSnakeLadder(false)} onResult={handleSlResult} coins={coins}/>}
 
       <div style={{maxWidth:460,margin:"0 auto",padding:"0 20px",position:"relative",zIndex:1}}>
 
@@ -764,6 +984,7 @@ function App(){
           <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:72,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${theme.accent})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{lvl}</div>
           <div style={{fontSize:18,color:theme.textSecondary,marginTop:8,fontWeight:600}}>{lt}</div>
           {lvl===20&&<div style={{marginTop:20,background:"#FF6B6B15",border:"1px solid #FF6B6B33",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE UNLOCKED</div>}
+          {lvl===30&&<div style={{marginTop:12,background:"#FF000015",border:"1px solid #FF000033",borderRadius:12,padding:"10px 20px",fontSize:14,color:"#FF6060",fontWeight:600}}>🔥 EXTREME MODE — Hard only, 8s!</div>}
           {nu.map(t=><div key={t.id} style={{marginTop:16,animation:"unlockGlow 1.5s ease infinite",background:t.accent+"15",border:`1px solid ${t.accent}44`,borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"center",gap:12}}>
             <span style={{fontSize:24}}>{t.emoji}</span><div><div style={{fontSize:13,color:"#FFD700",fontWeight:700}}>NEW THEME</div><div style={{fontSize:16,color:theme.textPrimary,fontWeight:700}}>{t.name}</div></div></div>)}
         </div>
@@ -771,12 +992,12 @@ function App(){
 
       {shop&&screen==="menu"&&<ThemeShop/>}
 
-      {/* MENU */}
+      {/* ─── MENU ─── */}
       {screen==="menu"&&!shop&&<div style={{paddingTop:40,paddingBottom:40,animation:"fadeUp .6s ease"}}>
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:13,letterSpacing:6,color:theme.accent,fontWeight:600,textTransform:"uppercase",marginBottom:10}}>⚡ Quiz</div>
           <h1 style={{fontFamily:"'Dela Gothic One',cursive",fontSize:52,margin:0,background:`linear-gradient(135deg,${theme.textPrimary} 30%,${theme.accent} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.1}}>BLITZ</h1>
-          <div style={{fontSize:11,color:theme.textSecondary,marginTop:6,letterSpacing:2}}>v2.0 — Sound & Visuals</div>
+          <div style={{fontSize:11,color:theme.textSecondary,marginTop:6,letterSpacing:2}}>v3.0 — Trivia Rewards & Coins</div>
         </div>
 
         <div style={{background:theme.cardBg,borderRadius:14,padding:"14px 18px",marginBottom:8,border:`1px solid ${theme.border}`}}>
@@ -785,55 +1006,61 @@ function App(){
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:theme.accent+"18",fontFamily:"'Dela Gothic One',cursive",fontSize:14,color:theme.accent}}>{lvl}</div>
               <div><div style={{fontSize:13,fontWeight:700,color:theme.textPrimary}}>{lt}</div><div style={{fontSize:11,color:theme.textSecondary}}>Level {lvl}</div></div>
             </div>
-            <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:13,fontWeight:800,color:'#FFE66D'}}>{coins} 🪙</div>
+              <div style={{fontSize:11,color:theme.textSecondary}}>{xp}/{xpN} XP</div>
+            </div>
           </div>
           <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
             <div style={{width:`${xpP}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,transition:"width .8s"}}/>
           </div>
-          {hard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ HARD MODE ACTIVE</div>}
+          {hard&&<div style={{marginTop:8,fontSize:11,color:"#FF6B6B",fontWeight:600}}>⚡ {lvl>=30?'EXTREME':'HARD'} MODE ACTIVE</div>}
         </div>
 
         <div style={{display:"flex",gap:8,marginBottom:20}}>
-          {tp>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:24,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.accent}}>{hs.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
-            <div style={{width:1,background:theme.border}}/><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:theme.textPrimary}}>{tp}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
+          {tp>0&&<div style={{flex:1,display:"flex",justifyContent:"center",gap:20,background:theme.cardBg,borderRadius:12,padding:"12px 16px",border:`1px solid ${theme.border}`}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:theme.accent}}>{hs.toLocaleString()}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Best</div></div>
+            <div style={{width:1,background:theme.border}}/>
+            <div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:theme.textPrimary}}>{tp}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>Games</div></div>
+            {(slWins+slLosses)>0&&<><div style={{width:1,background:theme.border}}/><div style={{textAlign:"center"}}><div style={{fontSize:17,fontWeight:800,color:'#00E5A0'}}>{slWins}</div><div style={{fontSize:10,color:theme.textSecondary,textTransform:"uppercase",letterSpacing:1}}>S&L W</div></div></>}
           </div>}
-          <Btn onClick={()=>setShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",display:"flex",flexDirection:tp>0?"column":"row",alignItems:"center",justifyContent:"center",gap:tp>0?4:10,minWidth:tp>0?72:"100%",transition:"all .2s"}}>
-            <span style={{fontSize:18}}>🎨</span><span style={{fontSize:tp>0?10:14,color:theme.textSecondary,fontWeight:600}}>Themes</span>
-          </Btn>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <Btn onClick={()=>setShop(true)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:10,padding:"8px 12px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,minWidth:62,transition:"all .2s"}}>
+              <span style={{fontSize:18}}>🎨</span><span style={{fontSize:10,color:theme.textSecondary,fontWeight:600}}>Themes</span>
+            </Btn>
+            <Btn onClick={()=>{if(slCooldown>0)return;sfx.click();setShowSnakeLadder(true);}} style={{background:slCooldown>0?theme.cardBg+'88':`linear-gradient(135deg,${theme.accent}22,${theme.cardBg})`,border:`1px solid ${slCooldown>0?theme.border:theme.accent+'44'}`,borderRadius:10,padding:"6px 10px",cursor:slCooldown>0?"default":"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1,minWidth:62,transition:"all .2s",opacity:slCooldown>0?0.6:1}}>
+              <span style={{fontSize:16}}>🐍</span>
+              <span style={{fontSize:9,color:slCooldown>0?theme.textSecondary:theme.accent,fontWeight:600}}>{slCooldown>0?fmtCd(slCooldown):'Play!'}</span>
+            </Btn>
+          </div>
         </div>
 
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {CATS.map((c,i)=><Btn key={c} onClick={()=>startGame(c)} style={{
-            background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",
-            cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,
-            transition:"all .25s",width:"100%",textAlign:"left",
-          }}
+          {CATS.map((c,i)=><Btn key={c} onClick={()=>startGame(c)} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:16,padding:"18px 22px",cursor:"pointer",display:"flex",alignItems:"center",gap:16,animation:`fadeUp .5s ease ${.05+i*.06}s both`,transition:"all .25s",width:"100%",textAlign:"left"}}
             onMouseEnter={e=>{sfx.init();sfx.hover();e.currentTarget.style.borderColor=CC[c]+"55";e.currentTarget.style.background=theme.cardHover;e.currentTarget.style.transform="translateX(4px)";}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}
-          >
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=theme.cardBg;e.currentTarget.style.transform="translateX(0)";}}>
             <div style={{width:48,height:48,borderRadius:14,fontSize:22,background:CC[c]+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{CI[c]}</div>
-            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{c}</div><div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(c).length} questions{hard&&" • Hard"}</div></div>
+            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:700,color:theme.textPrimary}}>{c}</div>
+              <div style={{fontSize:12,color:theme.textSecondary,marginTop:2}}>{getPool(c).length} questions{lvl>=30?" • Extreme":hard?" • Hard":lvl>=10?" • Mixed":""}</div></div>
             <div style={{color:CC[c],fontSize:13,fontWeight:600}}>PLAY →</div>
           </Btn>)}
         </div>
-
         <Btn onClick={()=>startGame("Mixed")} style={{marginTop:16,width:"100%",padding:"18px 24px",background:`linear-gradient(135deg,${theme.accent},${theme.accentAlt})`,border:"none",borderRadius:16,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"all .25s",animation:"fadeUp .5s ease .45s both"}}
           onMouseEnter={e=>e.currentTarget.style.transform="scale(1.02)"} onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}
         >🔀 MIXED BLITZ — All Categories</Btn>
       </div>}
 
-      {/* COUNTDOWN */}
+      {/* ─── COUNTDOWN ─── */}
       {screen==="countdown"&&<div style={{height:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-        <div style={{fontSize:14,color:catCol,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CI[cat]||"🔀"} {cat}{hard&&" • HARD"}</div>
+        <div style={{fontSize:14,color:catCol,letterSpacing:3,marginBottom:20,fontWeight:600,textTransform:"uppercase"}}>{CI[cat]||"🔀"} {cat}{lvl>=30?" • EXTREME":hard?" • HARD":""}</div>
         {cd>0?<div key={cd} style={{fontFamily:"'Dela Gothic One',cursive",fontSize:120,color:catCol,animation:"countIn .6s ease",lineHeight:1,textShadow:`0 0 60px ${catCol}44`}}>{cd}</div>
         :<div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:40,color:catCol,animation:"countIn .5s ease",textShadow:`0 0 40px ${catCol}44`}}>GO!</div>}
       </div>}
 
-      {/* GAME */}
+      {/* ─── GAME ─── */}
       {screen==="game"&&cQ&&<div style={{paddingTop:24}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:catCol,fontWeight:700}}>{qi+1}</span> / {qs.length}{hard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>HARD</span>}</div>
+          <div style={{fontSize:13,color:theme.textSecondary}}><span style={{color:catCol,fontWeight:700}}>{qi+1}</span> / {qs.length}{hard&&<span style={{marginLeft:8,fontSize:10,color:"#FF6B6B",fontWeight:700}}>{lvl>=30?"EXTREME":"HARD"}</span>}</div>
           <div style={{fontSize:15,fontWeight:800,color:theme.textPrimary}}>{score.toLocaleString()}<span style={{fontSize:11,color:theme.textSecondary,marginLeft:4}}>pts</span></div>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:20}}>
@@ -851,8 +1078,7 @@ function App(){
             {mult>1&&<span style={{fontSize:12,fontWeight:800,background:mult>=3?"#FFE66D":catCol,color:theme.bg,borderRadius:8,padding:"2px 8px"}}>×{mult}</span>}
           </div>
         </div>}
-        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,
-          boxShadow:`0 0 30px ${catCol}11, inset 0 1px 0 ${theme.textPrimary}08`}}>
+        <div style={{animation:"scaleIn .35s ease",background:`linear-gradient(135deg,${theme.cardBg}F8,${theme.cardBg}EE)`,backdropFilter:'blur(8px)',borderRadius:20,padding:"28px 24px",border:`1px solid ${theme.border}`,marginBottom:20,boxShadow:`0 0 30px ${catCol}11,inset 0 1px 0 ${theme.textPrimary}08`}}>
           <div style={{fontSize:18,fontWeight:700,lineHeight:1.5,color:theme.textPrimary,textAlign:"center"}}>{cQ.q}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -862,16 +1088,9 @@ function App(){
             let bg=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`,bd=theme.border,tc=theme.textPrimary,an="";
             if(shC){bg=theme.accent+"20";bd=theme.accent+"55";tc=theme.accent;}
             if(wasW){bg="#FF444420";bd="#FF444455";tc="#FF6B6B";an="shake .5s ease";}
-            return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{
-              background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",
-              cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,
-              fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",
-              animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,
-              boxShadow:`0 2px 12px ${theme.bg}88`,
-            }}
+            return <button key={i} onClick={()=>handleAns(i)} disabled={sr} style={{background:bg,backdropFilter:'blur(12px)',border:`1.5px solid ${bd}`,borderRadius:14,padding:"16px 20px",cursor:sr?"default":"pointer",display:"flex",alignItems:"center",gap:14,fontFamily:"'Outfit',sans-serif",fontSize:15,color:tc,transition:"all .2s",animation:an||`fadeUp .3s ease ${i*.06}s both`,width:"100%",textAlign:"left",fontWeight:500,boxShadow:`0 2px 12px ${theme.bg}88`}}
               onMouseEnter={e=>{if(!sr){sfx.init();sfx.hover();e.currentTarget.style.borderColor=catCol+"55";e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardHover}F5,${theme.cardHover}EE)`;e.currentTarget.style.boxShadow=`0 4px 20px ${catCol}15`;}}}
-              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}
-            >
+              onMouseLeave={e=>{if(!sr){e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.background=`linear-gradient(135deg,${theme.cardBg}F0,${theme.cardBg}DD)`;e.currentTarget.style.boxShadow=`0 2px 12px ${theme.bg}88`;}}}>
               <div style={{width:32,height:32,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,flexShrink:0,background:shC?theme.accent+"22":wasW?"#FF444422":theme.border,color:shC?theme.accent:wasW?"#FF6B6B":theme.textSecondary}}>
                 {shC?"✓":wasW?"✗":lb[i]}
               </div><span>{opt}</span>
@@ -884,16 +1103,17 @@ function App(){
         </div>}
       </div>}
 
-      {/* RESULT */}
+      {/* ─── RESULT ─── */}
       {screen==="result"&&<div style={{paddingTop:48,paddingBottom:40,animation:"fadeUp .6s ease"}}>
         {cor>=7&&[...Array(8)].map((_,i)=><div key={i} style={{position:"fixed",left:`${10+i*12}%`,top:-20,width:8,height:8,borderRadius:i%2===0?"50%":"1px",background:[catCol,"#FFE66D","#FF6B6B","#7B68EE","#00B4D8"][i%5],animation:`confetti ${2+Math.random()}s ease ${Math.random()*.5}s forwards`,pointerEvents:"none",zIndex:0}}/>)}
         <div style={{textAlign:"center",position:"relative",zIndex:1}}>
           <div style={{fontSize:14,color:theme.textSecondary,letterSpacing:3,textTransform:"uppercase",marginBottom:8}}>Final Score</div>
           <div style={{fontFamily:"'Dela Gothic One',cursive",fontSize:64,lineHeight:1,background:`linear-gradient(135deg,${theme.textPrimary},${catCol})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:8}}>{score.toLocaleString()}</div>
           {score>=hs&&tp>1&&<div style={{display:"inline-block",background:"#FFE66D15",border:"1px solid #FFE66D33",borderRadius:20,padding:"4px 16px",fontSize:13,color:"#FFE66D",fontWeight:700,animation:"pulse 1.5s ease infinite",marginBottom:8}}>👑 NEW HIGH SCORE!</div>}
-          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CI[cat]||"🔀"} {cat}{hard&&" • Hard"}</div>
+          {cor===QPR&&cat!=='Mixed'&&<div style={{display:"inline-block",background:`${catCol}15`,border:`1px solid ${catCol}44`,borderRadius:20,padding:"4px 16px",fontSize:13,color:catCol,fontWeight:700,marginBottom:8,marginLeft:8}}>⚡ PERFECT 10!</div>}
+          <div style={{fontSize:14,color:theme.textSecondary,marginBottom:24}}>{CI[cat]||"🔀"} {cat}{lvl>=30?" • Extreme":hard?" • Hard":""}</div>
 
-          <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:20,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
+          <div style={{background:theme.cardBg,borderRadius:14,padding:"16px 20px",marginBottom:16,border:`1px solid ${theme.border}`,animation:"fadeUp .4s ease .15s both"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <span style={{fontSize:13,color:theme.textSecondary}}>Level {lvl} — {lt}</span>
               <span style={{fontSize:14,fontWeight:800,color:theme.accent}}>+{xpg} XP</span>
@@ -901,22 +1121,21 @@ function App(){
             <div style={{height:6,background:theme.border,borderRadius:3,overflow:"hidden"}}>
               <div style={{width:`${(xp/xpFor(lvl))*100}%`,height:"100%",borderRadius:3,background:`linear-gradient(90deg,${theme.accent},${theme.accentAlt})`,animation:"xpFill 1s ease"}}/>
             </div>
-            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(lvl)} XP to next</div>
+            <div style={{fontSize:11,color:theme.textSecondary,marginTop:4}}>{xp}/{xpFor(lvl)} XP to next level</div>
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
             {[{l:"Correct",v:`${cor}/${qs.length}`,c:theme.accent},{l:"Accuracy",v:`${Math.round((cor/qs.length)*100)}%`,c:catCol},{l:"Best Streak",v:bstk,c:"#FFE66D"},{l:"Top Mult",v:`×${bstk>=5?3:bstk>=3?2:1}`,c:"#7B68EE"}].map((s,i)=>
               <div key={i} style={{background:theme.cardBg,border:`1px solid ${theme.border}`,borderRadius:14,padding:"18px 14px",animation:`fadeUp .4s ease ${.2+i*.06}s both`}}>
                 <div style={{fontSize:24,fontWeight:800,color:s.c,fontFamily:"'Dela Gothic One',cursive"}}>{s.v}</div>
                 <div style={{fontSize:11,color:theme.textSecondary,marginTop:4,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
-              </div>
-            )}
+              </div>)}
           </div>
           <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24,animation:"fadeUp .5s ease .45s both"}}>
             {ah.map((c,i)=><div key={i} style={{width:28,height:28,borderRadius:8,background:c?theme.accent+"18":"#FF444418",border:`1px solid ${c?theme.accent+"33":"#FF444433"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:c?theme.accent:"#FF6B6B",fontWeight:700}}>{c?"✓":"✗"}</div>)}
           </div>
           <div style={{fontSize:15,color:theme.textSecondary,marginBottom:28,lineHeight:1.6,animation:"fadeUp .5s ease .5s both"}}>
-            {cor>=9?"🏆 Incredible! Absolutely crushed it!":cor>=7?"🎉 Great job! You know your stuff!":cor>=5?"👍 Not bad! Keep playing to level up!":"💪 Keep at it — every game earns XP!"}
+            {cor===QPR?"🏆 PERFECT! Absolute mastery!":cor>=9?"🏆 Incredible! You crushed it!":cor>=7?"🎉 Great job! You know your stuff!":cor>=5?"👍 Not bad! Keep levelling up!":"💪 Every game earns XP — keep going!"}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10,animation:"fadeUp .5s ease .55s both"}}>
             <Btn onClick={()=>startGame(cat)} style={{width:"100%",padding:"16px 24px",background:`linear-gradient(135deg,${catCol},${catCol}CC)`,border:"none",borderRadius:14,cursor:"pointer",fontSize:16,fontWeight:800,color:theme.bg,transition:"transform .2s"}}
@@ -927,7 +1146,7 @@ function App(){
               onMouseLeave={e=>{e.currentTarget.style.borderColor=theme.border;e.currentTarget.style.color=theme.textSecondary;}}
             >← Back to Categories</Btn>
             <Btn onClick={()=>{
-              const txt=`🧠 Quiz Blitz — I scored ${score.toLocaleString()} pts! Level ${lvl} ${lt}. Can you beat me? ${window.location.href}`;
+              const txt=`🧠 Quiz Blitz v3 — I scored ${score.toLocaleString()} pts! Level ${lvl} ${lt}. Can you beat me? ${window.location.href}`;
               if(navigator.share){navigator.share({title:"Quiz Blitz",text:txt,url:window.location.href}).catch(()=>{})}
               else{navigator.clipboard.writeText(txt).then(()=>alert("Score copied! Share it 🎉")).catch(()=>{})}
             }} style={{width:"100%",padding:"14px 24px",background:"transparent",border:`1px dashed ${theme.border}`,borderRadius:14,cursor:"pointer",fontSize:14,fontWeight:600,color:theme.textSecondary,transition:"all .2s"}}
